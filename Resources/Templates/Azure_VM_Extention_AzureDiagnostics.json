@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": {},
+  "parameters": {
+    "VMName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the existing VM to apply BGInfo to"
+      }
+    },
+    "apiVersion": {
+      "metadata": {
+        "description": "apiVersion"
+      },
+      "type": "string",
+      "defaultValue": "2015-06-15"
+    },
+    "StorageDiagAccountName": {
+      "metadata": {
+        "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
+      },
+      "type": "string"
+    },
+    "DiagStorageResourceGroup": {
+      "metadata": {
+        "description": "Resource Group for the diagnotic Storage Account."
+      },
+      "type": "string"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "northeurope",
+      "metadata": {
+        "description": "Deployment location"
+      }
+    }
+  },
+  "variables": {
+    "accountid": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/',parameters('DiagStorageResourceGroup'), '/providers/','Microsoft.Storage/storageAccounts/', parameters('StorageDiagAccountName'))]",
+    "metricsresourceid": "[concat('\"/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name ,'/providers/','Microsoft.Compute/virtualMachines/',parameters('VMName'),'\"')]",
+    "wadstart": "[concat('<WadCfg><DiagnosticMonitorConfiguration overallQuotaInMB=\"4096\"><DiagnosticInfrastructureLogs scheduledTransferPeriod=\"PT1M\" scheduledTransferLogLevelFilter=\"Undefined\"/>')]",
+    "wadperfcounters": "[concat('<PerformanceCounters scheduledTransferPeriod=\"PT1M\"><PerformanceCounterConfiguration counterSpecifier=\"\\Processor(_Total)\\% Processor Time\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"CPU percentage guest OS\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Memory\\% Committed Bytes In Use\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"Memory percentage\" locale=\"en-us\"/></PerformanceCounterConfiguration></PerformanceCounters>')]",
+    "wadmetrics": "[concat('<Metrics resourceId=',variables('metricsresourceid'),'><MetricAggregation scheduledTransferPeriod=\"PT1H\"/><MetricAggregation scheduledTransferPeriod=\"PT1M\"/></Metrics></DiagnosticMonitorConfiguration></WadCfg>')]",
+    "wadcfgx": "[concat(variables('wadstart'),variables('wadperfcounters'),variables('wadmetrics'))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "[parameters('apiVersion')]",
+      "location": "[parameters('location')]",
+      "name": "[concat(parameters('vmName'),'/Microsoft.Insights.VMDiagnosticsSettings')]",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "properties": {
+        "autoUpgradeMinorVersion": true,
+        "protectedSettings": {
+          "storageAccountName": "[parameters('StorageDiagAccountName')]",
+          "storageAccountKey": "[listkeys(variables('accountid'), parameters('apiVersion')).key1]",
+          "storageAccountEndPoint": "https://core.windows.net"
+        },
+        "publisher": "Microsoft.Azure.Diagnostics",
+        "settings": {
+          "xmlCfg": "[base64(variables('wadcfgx'))]",
+          "storageAccount": "[parameters('StorageDiagAccountName')]"
+        },
+        "type": "IaaSDiagnostics",
+        "typeHandlerVersion": "1.5"
+      },
+      "tags": {
+        "displayName": "AzureDiagnostics"
+      }
+    }
+  ]
+}

@@ -1,0 +1,405 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.25",
+  "parameters": {
+    "availabilitySetName": {
+      "type": "string",
+      "metadata": {
+        "description": "availabilitySetName"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "adminUsername"
+      }
+    },
+    "adminPassword": {
+      "type": "string",
+      "metadata": {
+        "description": "adminPassword"
+      }
+    },
+    "IfaceNames": {
+      "type": "array",
+      "metadata": {
+        "description": "IfaceName"
+      }
+    },
+    "IfaceCount": {
+      "type": "int",
+      "metadata": {
+        "description": "IfaceCount"
+      }
+    },
+    "IPConfigNames": {
+      "type": "array",
+      "metadata": {
+        "description": "IPConfigName"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "northeurope",
+      "allowedValues": [
+        "westeurope",
+        "northeurope",
+        "uksouth",
+        "ukwest"
+      ],
+      "metadata": {
+        "description": "Deployment location"
+      }
+    },
+    "StorageDiagAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
+      }
+    },
+    "StorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
+      }
+    },
+    "storageAccountType": {
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_GRS",
+        "Premium_LRS",
+        "Standard_RAGRS"
+      ],
+      "defaultValue": "Standard_LRS",
+      "metadata": {
+        "description": "Type of storage account"
+      },
+      "type": "string"
+    },
+    "SubNetNames": {
+      "type": "array",
+      "metadata": {
+        "description": "SubNetName"
+      }
+    },
+    "VMDiskName": {
+      "type": "string",
+      "metadata": {
+        "description": "VMDiskName"
+      }
+    },
+    "VMIPaddresses": {
+      "type": "array",
+      "metadata": {
+        "description": "VMIPaddress"
+      }
+    },
+    "VMName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Virtual Machine"
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_DS1",
+      "metadata": {
+        "description": "The size of the virtual machines"
+      }
+    },
+    "VNetName": {
+      "metadata": {
+        "description": "VNetName"
+      },
+      "type": "string"
+    },
+    "VNetResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource Group VNET is deployed in"
+      }
+    },
+    "imageSku": {
+      "type": "string",
+      "defaultValue": "2016-Datacenter",
+      "metadata": {
+        "description": "Image SKU offer"
+      }
+    },
+    "DatadiskSizeGB": {
+      "type": "string",
+      "defaultValue": "100",
+      "metadata": {
+        "description": "diskSizeGB Sizi in GB"
+      }
+    },
+    "templateBaseUrl": {
+      "type": "string",
+      "metadata": {
+        "description": "templateBaseUrl is deployed in"
+      }
+    },
+    "BGInfoTemplate": {
+      "type": "string",
+      "metadata": {
+        "description": "BGInfoTemplate is deployed in"
+      }
+    },
+    "AzureDiagnosticsTemplate": {
+      "type": "string",
+      "metadata": {
+        "description": "AzureDiagnostics is deployed in"
+      }
+    },
+    "MicrosoftMonitoringAgentTemplate": {
+      "type": "string",
+      "metadata": {
+        "description": "AzureDiagnostics is deployed in"
+      }
+    },
+    "Token": {
+      "type": "string",
+      "metadata": {
+        "description": "Token is deployed in"
+      }
+    },
+    "workspaceId": {
+      "metadata": {
+        "description": "Name of workspaceId"
+      },
+      "type": "string"
+    },
+    "workspaceKey": {
+      "metadata": {
+        "description": "workspaceKey"
+      },
+      "type": "string"
+    },
+    "imagePublisher": {
+      "type": "string",
+      "defaultValue": "MicrosoftWindowsServer",
+      "metadata": {
+        "description": "Image Publisher in Azure Galery"
+      }
+    },
+    "imageOffer": {
+      "type": "string",
+      "defaultValue": "WindowsServer",
+      "metadata": {
+        "description": "imageOffer in Azure Galery"
+      }
+    },
+    "FaultDomainCount": {
+      "type": "int",
+      "metadata": {
+        "description": "PlatformFaultDomainCount"
+      }
+    },
+    "UpdateDomainCount": {
+      "type": "int",
+      "metadata": {
+        "description": "PlatformUpdateDomainCount"
+      }
+    },
+     "EnableAcceleratedNetworking": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Whether Accelerated Networking is enabled on VM NIC. Currently false as only supported on >=8 Core VMs (12/7/2017)"
+      }
+    }
+  },
+  "variables": {
+    "apiVersion": "2016-03-30",
+     "apiVersionNIC": "2016-09-01",
+     
+    "apiVersionpw": "2016-04-30-preview",
+    "apiVersiontemplate": "2015-01-01",
+    "apiVersionST": "2015-06-15",
+    "vnetID": "[resourceId(parameters('VNetResourceGroup'), 'Microsoft.Network/virtualNetworks/', parameters('VNetName'))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "[variables('apiVersionST')]",
+      "location": "[parameters('location')]",
+      "name": "[parameters('StorageAccountName')]",
+      "properties": {
+        "accountType": "[parameters('storageAccountType')]"
+      },
+      "type": "Microsoft.Storage/storageAccounts"
+    },
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "[parameters('availabilitySetName')]",
+      "apiVersion": "[providers('Microsoft.Compute', 'availabilitySets').apiVersions[0]]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "PlatformFaultDomainCount": "[parameters('FaultDomainCount')]",
+        "PlatformUpdateDomainCount": "[parameters('UpdateDomainCount')]"
+      },
+      "sku": {
+        "name": "Classic"
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersionNIC')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[parameters('IfaceNames')[copyIndex(0)]]",
+      "location": "[parameters('location')]",
+      "copy": {
+        "name": "interface2Copy",
+        "count": "[parameters('IfaceCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[parameters('IPConfigNames')[copyIndex(0)]]",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('VMIPaddresses')[copyIndex(0)]]",
+              "subnet": {
+                "id": "[concat(variables('vnetID'),'/subnets/',parameters('SubNetNames')[copyIndex(0)])]"
+              }
+            }
+          }
+        ], 
+
+        "enableAcceleratedNetworking"  : "[parameters('enableAcceleratedNetworking')]"
+      
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersionpw')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[parameters('VMName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts',parameters('StorageAccountName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces',parameters('IfaceNames')[0])]",
+        "[concat('Microsoft.Compute/availabilitySets/', parameters('availabilitySetName'))]"
+      ],
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', parameters('availabilitySetName'))]"
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": "true",
+            "storageUri": "[concat('https://',parameters('StorageDiagAccountName'),'.blob.core.windows.net')]"
+          }
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('IfaceNames')[0])]",
+              "properties": {
+                "primary": true
+              }
+            }
+          ]
+        },
+        "osProfile": {
+          "computerName": "[parameters('VMName')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[parameters('imagePublisher')]",
+            "offer": "[parameters('imageOffer')]",
+            "sku": "[parameters('imageSku')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat(parameters('VMDiskName'),'-osdisk')]",
+            "vhd": {
+              "uri": "[concat('http://',parameters('StorageAccountName'),'.blob.core.windows.net/vhds/',parameters('VMDiskName'),'-osdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "name": "[concat(parameters('VMDiskName'),'-data-disk1')]",
+              "vhd": {
+                "uri": "[concat('http://',parameters('StorageAccountName'),'.blob.core.windows.net/vhds/',parameters('VMDiskName'),'-data-disk1.vhd')]"
+              },
+              "caching": "None",
+              "createOption": "Empty",
+              "diskSizeGB": "[parameters('DatadiskSizeGB')]",
+              "lun": 0
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "apiVersion": "[variables('apiVersiontemplate')]",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/', parameters('VMName'))]"
+          ],
+          "name": "MS.Insights.VMDSettings_template",
+          "properties": {
+            "mode": "incremental",
+            "templateLink": {
+              "contentVersion": "1.0.0.0",
+              "uri": "[concat(parameters('templateBaseUrl'), parameters('AzureDiagnosticsTemplate'),parameters('Token'))]"
+            },
+            "parameters": {
+              "apiVersion": { "value": "[variables('apiVersionST')]" },
+              "location": { "value": "[parameters('location')]" },
+              "StorageDiagAccountName": { "value": "[parameters('StorageDiagAccountName')]" },
+              "VMName": { "value": "[parameters('VMName')]" }
+            }
+          },
+          "type": "Microsoft.Resources/deployments"
+        },
+        {
+          "apiVersion": "[variables('apiVersiontemplate')]",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/', parameters('VMName'))]"
+          ],
+          "name": "MS.MicrosoftMonitoringAgent",
+          "properties": {
+            "mode": "incremental",
+            "templateLink": {
+              "contentVersion": "1.0.0.0",
+              "uri": "[concat(parameters('templateBaseUrl'), parameters('MicrosoftMonitoringAgentTemplate'),parameters('Token'))]"
+            },
+            "parameters": {
+              "apiVersion": { "value": "[variables('apiVersion')]" },
+              "location": { "value": "[parameters('location')]" },
+              "VMName": { "value": "[parameters('VMName')]" },
+              "workspaceId": { "value": "[parameters('workspaceId')]" },
+              "workspaceKey": { "value": "[parameters('workspaceKey')]" }
+            }
+          },
+          "type": "Microsoft.Resources/deployments"
+        }
+      ]
+    },
+    {
+      "apiVersion": "[variables('apiVersiontemplate')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('VMName'))]"
+      ],
+      "name": "BGInfo_template",
+      "properties": {
+        "mode": "incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templateBaseUrl'), parameters('BGInfoTemplate'),parameters('Token'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "VMName": { "value": "[parameters('VMName')]" },
+          "apiVersion": { "value": "[variables('apiVersionpw')]" },
+          "location": { "value": "[parameters('location')]" }
+        }
+      },
+      "type": "Microsoft.Resources/deployments"
+    }
+  ]
+}

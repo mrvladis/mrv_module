@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "outputs": { },
+  "parameters": {
+    "apiVersion": {
+      "type": "string",
+      "defaultValue": "2015-06-15",
+      "metadata": {
+        "description": "Name of the existing VM to apply BGInfo to"
+      }
+    },
+    "vmName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the existing VM to apply BGInfo to"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "northeurope",
+      "allowedValues": [
+        "westeurope",
+        "northeurope",
+        "uksouth",
+        "ukwest"
+      ],
+      "metadata": {
+        "description": "Deployment location"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('vmName'),'/BGInfo')]",
+      "apiVersion": "[parameters('apiVersion')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "publisher": "Microsoft.Compute",
+        "type": "BGInfo",
+        "typeHandlerVersion": "2.1",
+        "settings": {
+          "Properties": [
+          ]
+        }
+      }
+    }
+  ],
+  "variables": {
+
+  }
+}
