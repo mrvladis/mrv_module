@@ -1,6 +1,6 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.25",
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.25",
   "parameters": {
     "availabilitySetName": {
       "type": "string",
@@ -127,10 +127,10 @@
       }
     },
     "DatadiskSizeGB": {
-      "type": "string",
+      "type": "int",
       "defaultValue": "100",
       "metadata": {
-        "description": "diskSizeGB Sizi in GB"
+        "description": "diskSizeGB Size in GB"
       }
     },
     "templateBaseUrl": {
@@ -201,7 +201,7 @@
         "description": "PlatformUpdateDomainCount"
       }
     },
-     "EnableAcceleratedNetworking": {
+    "EnableAcceleratedNetworking": {
       "type": "bool",
       "defaultValue": false,
       "metadata": {
@@ -211,8 +211,7 @@
   },
   "variables": {
     "apiVersion": "2016-03-30",
-     "apiVersionNIC": "2016-09-01",
-     
+    "apiVersionNIC": "2016-09-01",
     "apiVersionpw": "2016-04-30-preview",
     "apiVersiontemplate": "2015-01-01",
     "apiVersionST": "2015-06-15",
@@ -262,10 +261,8 @@
               }
             }
           }
-        ], 
-
-        "enableAcceleratedNetworking"  : "[parameters('enableAcceleratedNetworking')]"
-      
+        ],
+        "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]"
       }
     },
     {
@@ -349,10 +346,18 @@
               "uri": "[concat(parameters('templateBaseUrl'), parameters('AzureDiagnosticsTemplate'),parameters('Token'))]"
             },
             "parameters": {
-              "apiVersion": { "value": "[variables('apiVersionST')]" },
-              "location": { "value": "[parameters('location')]" },
-              "StorageDiagAccountName": { "value": "[parameters('StorageDiagAccountName')]" },
-              "VMName": { "value": "[parameters('VMName')]" }
+              "apiVersion": {
+                "value": "[variables('apiVersionST')]"
+              },
+              "location": {
+                "value": "[parameters('location')]"
+              },
+              "StorageDiagAccountName": {
+                "value": "[parameters('StorageDiagAccountName')]"
+              },
+              "VMName": {
+                "value": "[parameters('VMName')]"
+              }
             }
           },
           "type": "Microsoft.Resources/deployments"
@@ -370,11 +375,21 @@
               "uri": "[concat(parameters('templateBaseUrl'), parameters('MicrosoftMonitoringAgentTemplate'),parameters('Token'))]"
             },
             "parameters": {
-              "apiVersion": { "value": "[variables('apiVersion')]" },
-              "location": { "value": "[parameters('location')]" },
-              "VMName": { "value": "[parameters('VMName')]" },
-              "workspaceId": { "value": "[parameters('workspaceId')]" },
-              "workspaceKey": { "value": "[parameters('workspaceKey')]" }
+              "apiVersion": {
+                "value": "[variables('apiVersion')]"
+              },
+              "location": {
+                "value": "[parameters('location')]"
+              },
+              "VMName": {
+                "value": "[parameters('VMName')]"
+              },
+              "workspaceId": {
+                "value": "[parameters('workspaceId')]"
+              },
+              "workspaceKey": {
+                "value": "[parameters('workspaceKey')]"
+              }
             }
           },
           "type": "Microsoft.Resources/deployments"
@@ -394,9 +409,15 @@
           "contentVersion": "1.0.0.0"
         },
         "parameters": {
-          "VMName": { "value": "[parameters('VMName')]" },
-          "apiVersion": { "value": "[variables('apiVersionpw')]" },
-          "location": { "value": "[parameters('location')]" }
+          "VMName": {
+            "value": "[parameters('VMName')]"
+          },
+          "apiVersion": {
+            "value": "[variables('apiVersionpw')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          }
         }
       },
       "type": "Microsoft.Resources/deployments"

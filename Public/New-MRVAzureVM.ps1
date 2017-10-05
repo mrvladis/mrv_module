@@ -154,7 +154,7 @@ Size of the Data Disk in GB. Default is 128GB. Maximum value is 1023 GB.
  .Parameter StorageAccountID
  ID (two numbers) of the storage account that will be hosting data disks.
 
-<#  .Parameter AttachDataVHDs
+ .Parameter AttachDataVHDs
  Use this switch to attache the exiting DATA VHDs for the VM you are creating from the VHD. Please not that only available when creating VM from the Existing VHD.
  For additional help please see "Get-Help Add-mrvExistingDataDisks -Detailed"
 
@@ -733,6 +733,7 @@ Function New-MRVAzureVM
     ##################Loading Modules #################
     [datetime]$time_start = Get-Date
     $timestamp = Get-Date -Format 'yyyy-MM-dd-HH-mm'
+    Write-Host "Deployment has bneen started at [$time_start]"
     Write-Host 'Loading Azure Modules'
     If (!(Import-MRVModule  'AzureRM').Result)
     {
@@ -767,7 +768,8 @@ Function New-MRVAzureVM
         $ScriptRuntimeWin = $true
         $PathDelimiter = '\'
     }
-    if ($StandaloneVM)
+    <#   Temporary disabled as currently no need in this credentials.
+  if ($StandaloneVM)
     {
         Write-Verbose "Skipping Credentials  as VM is Standalone"
     }
@@ -799,7 +801,7 @@ Function New-MRVAzureVM
                 return $false
             }
         }
-    }
+    } #>
 
     if (! (Test-Path $JsonTempFolder))
     {
@@ -891,6 +893,7 @@ Example:
     $RegsPath = $PathDelimiter + 'Resources' + $PathDelimiter + 'Registry' + $PathDelimiter
 
     $JSONBaseTemplateFile = 'Azure_VM.json'
+    $JSONParametersFile = 'Parameters.json'
     $JSONBGinfoTemplateFile = 'Azure_VM_Extention_BGINFO.json'
     $JSONAzureDiagnosticsTemplateFile = 'Azure_VM_Extention_AzureDiagnostics.json'
     $JSONOMSTemplateFile = 'Azure_VM_Extention_OMS.json'
@@ -901,7 +904,7 @@ Example:
     $VMnametmp = $VMname.Substring(0, $VMname.lastIndexOf('-'))
     $ResourceGroupNametmp = $ResourceGroupName.Substring(0, $ResourceGroupName.lastIndexOf('-'))
     $SourceVMFQDN = $SourceVM + '.' + $DomainDNS
-    $sessionOption = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
+    #$sessionOption = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
 
     Write-Host 'Running Pre-Checks' -BackgroundColor DarkCyan
     if ($SourceVM -ne '')
@@ -1250,7 +1253,9 @@ Example:
     Write-Host  "Main Temlate URL will be $JsonUrlMain Reading Main Template to be deployed"
     Write-Host  'Preparing main template...' -BackgroundColor DarkCyan
     $OutFileName = $JSONBaseTemplateFile.Substring(0, $JSONBaseTemplateFile.IndexOf('.')) + $containername + '.json'
+    $JSONParametersOutFileName = $JSONParametersFile.Substring(0, $JSONParametersFile.IndexOf('.')) + $OutFileName
     $JsonUrlMain = $JSONUrlBase + $containername + '/' + $OutFileName + $token
+    $JSONParametersUrl = $JSONUrlBase + $containername + '/' + $JSONParametersOutFileName + $token
     $InputTemplate = $null
     $InputTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONBaseTemplateFile
     Write-Verbose "JSON Main Url is [$JsonUrlMain]"
@@ -1258,6 +1263,19 @@ Example:
     try
     {
         $InputTemplate = [system.io.file]::ReadAllText($InputTemplatePath) -join "`n" | ConvertFrom-Json
+    }
+    catch
+    {
+        Write-Error  "Can't load the main template! Please check the path [$InputTemplate]"
+        return $false
+    }
+    $InputParameters = $null
+    $InputParametersPath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONParametersFile
+    Write-Verbose "JSON Parameters Main Url is [$JSONParametersUrl]"
+    Write-Host  "Loading Main Parameters Template from file [$InputParametersPath]"
+    try
+    {
+        $InputParameters = [system.io.file]::ReadAllText($InputParametersPath) -join "`n" | ConvertFrom-Json
     }
     catch
     {
@@ -1483,7 +1501,52 @@ Example:
         Write-Error  "Can't save or convert the main template to a file $($DeploymentTempPath +$OutFileName) !"
         return $false
     }
+    Write-host "Processing Parameters for VM Deployment"
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VMname -Value @{Value = $VMname}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name location -Value @{Value = $location}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageAccountName -Value @{Value = $StorageAccountName}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name ImageSKU -Value @{Value = $ImageSKU}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name templateBaseUrl -Value @{Value = $JsonTemplatesUrl}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name BGInfoTemplate -Value @{Value = $JSONBGinfoTemplateFile}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name AzureDiagnosticsTemplate -Value @{Value = $JSONAzureDiagnosticsTemplateFile}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name Token -Value @{Value = $token}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name vmSize -Value @{Value = $VMSize}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VMIPaddresses -Value @{Value = $VMIPaddresses_array}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VNetName -Value @{Value = $VNetName}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name SubNetNames -Value @{Value = $SubNetNames}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name IPConfigNames -Value @{Value = $IPConfigNames_array}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name IfaceNames -Value @{Value = $IfaceNames_array}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name IfaceCount -Value @{Value = $IfaceCount}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VMDiskName -Value @{Value = $VMDiskName}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name availabilitySetName -Value @{Value = $availabilitySetName}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VNetResourceGroup -Value @{Value = $VNetResourceGroup}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name adminUserName -Value @{Value = $VMAdminUsername}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name adminPassword -Value @{Value = $VMAdminPassword}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name storageAccountType -Value @{Value = $StorageAccountType}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageDiagAccountName -Value @{Value = $StorageDiagAccountName}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name MicrosoftMonitoringAgentTemplate -Value @{Value = $JSONOMSTemplateFile}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name workspaceId -Value @{Value = $workspaceId}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name workspaceKey -Value @{Value = $workspaceKey}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name imagePublisher -Value @{Value = $imagePublisher}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name imageOffer -Value @{Value = $imageOffer}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name DatadiskSizeGB -Value @{Value = $DatadiskSizeGB}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name FaultDomainCount -Value @{Value = $FaultDomainCount}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name UpdateDomainCount -Value @{Value = $UpdateDomainCount}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name EnableAcceleratedNetworking -Value @{Value = $EnableAcceleratedNetworking.IsPresent}
 
+
+    Write-Verbose  "Saving Main Parameters Template to file [$JSONParametersOutFileName] as [$($DeploymentTempPath + $JSONParametersOutFileName)] to be uploaded for provisioning"
+    try
+    {
+        $json_content = $InputParameters | ConvertTo-Json -Depth 50
+        [system.io.file]::WriteAllText($($DeploymentTempPath + $JSONParametersOutFileName), $json_content)
+    }
+    catch
+    {
+        Write-Error  "Can't save or convert the main template to a file $($DeploymentTempPath +$JSONParametersOutFileName) !"
+        return $false
+    }
+    $json_content = $null
     if (!$StandaloneVM)
     {
         if ($UseExistingDisk -or ($osType -eq 'Linux'))
@@ -1525,7 +1588,8 @@ Example:
     else
     {
         Write-Host  'Provisioning VM.....' -ForegroundColor DarkBlue -BackgroundColor White
-        $DeploymentSatus = New-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Verbose -Name $DeploymentName -TemplateUri $JsonUrlMain -VMName $VMname `
+        $DeploymentSatus = New-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Verbose -Name $DeploymentName -TemplateUri $JsonUrlMain -TemplateParameterUri $JSONParametersUrl
+        <#  $DeploymentSatus = New-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Verbose -Name $DeploymentName -TemplateUri $JsonUrlMain -VMName $VMname `
             -location $location -StorageAccountName $StorageAccountName -ImageSKU $ImageSKU `
             -templateBaseUrl $JsonTemplatesUrl -BGInfoTemplate $JSONBGinfoTemplateFile -AzureDiagnosticsTemplate $JSONAzureDiagnosticsTemplateFile -Token $token `
             -vmSize $VMSize -VMIPaddresses $VMIPaddresses_array -VNetName $VNetName -SubNetNames $SubNetNames `
@@ -1533,6 +1597,7 @@ Example:
             -VNetResourceGroup $VNetResourceGroup -adminUserName $VMAdminUsername -adminPassword $VMAdminPassword -storageAccountType $StorageAccountType -StorageDiagAccountName $StorageDiagAccountName `
             -MicrosoftMonitoringAgentTemplate $JSONOMSTemplateFile -workspaceId $workspaceId  -workspaceKey $workspaceKey -imagePublisher $imagePublisher -imageOffer $imageOffer `
             -DatadiskSizeGB $DatadiskSizeGB -FaultDomainCount $FaultDomainCount -UpdateDomainCount $UpdateDomainCount -EnableAcceleratedNetworking $EnableAcceleratedNetworking.IsPresent
+    #>
     }
     Write-Host  'Deployment status ....'
 
@@ -1560,9 +1625,9 @@ Example:
 
         if (-not $StandaloneVM)
         {
-            if ($UseExistingDisk <#-or $SkipExtensions #>)
+            if ($UseExistingDisk -or ($osType -ne 'Windows') <#-or $SkipExtensions #>)
             {
-                Write-Verbose  "Skipping Domain Joining as using Existing Disk or [SkipExtensions] specified"
+                Write-Verbose  "Skipping Domain Joining as using Existing Disk or [SkipExtensions] specified or OS is not Windows."
             }
             else
             {
@@ -1571,6 +1636,15 @@ Example:
                 If ($DeploymentName.Length -gt 64) { $DeploymentName = $DeploymentName.Substring(64)}
                 Write-Verbose "Starting Domain Join Extention deployment"
                 $JoinDomainDeployment = New-AzureRmResourceGroupDeployment -Name $DeploymentName -ResourceGroupName $ResourceGroupName -Verbose -TemplateFile $JsonUrlJoinDomain -VMName $VMname -apiVersion '2015-06-15' -location $location  -domainUsername $DomainUser -domainPassword $DomainPass -domainToJoin $DomainDNS -ouPath $AzureServersOU
+
+                if ($JoinDomainDeployment.ProvisioningState -like 'Succeeded')
+                {
+                    Write-Verbose "Domain Join Operation has been completed sucessfully."
+                }
+                else
+                {
+                    Write-Error "Domain Join operation has failed."
+                }
             }
         }
         else
@@ -1578,7 +1652,7 @@ Example:
             Write-Verbose  'Standalone Machine. Skipping Domain Joing...'
         }
 
-        Write-Host  'Deployment finished!' -BackgroundColor DarkCyan
+        Write-Host  "Deployment finished at [$time_end]" -BackgroundColor DarkCyan
         Write-Host  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
         return $true
     }
