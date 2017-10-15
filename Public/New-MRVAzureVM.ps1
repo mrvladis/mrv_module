@@ -570,7 +570,7 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [String]
-        $DomainUser = 'NotConfigured',
+        $DomainUser = 'NotConfigured',
 
         #"Password for joining Domain"
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
