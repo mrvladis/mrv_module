@@ -1182,7 +1182,7 @@ Example:
         }
         else
         {
-            Write-Verbose "Secure context for storage account [$JsonStorageAccountName] has been created sucessfully." -ForegroundColor Green
+            Write-Host "Secure context for storage account [$JsonStorageAccountName] has been created sucessfully." -ForegroundColor Green
         }
     }
     Write-Verbose  "Creating container $containername"
