@@ -195,30 +195,30 @@ https://azure.microsoft.com/en-us/updates/accelerated-networking-in-preview/ for
 
 .Example
 Create VM from the Azure Market Image
-New-MRVAzureVM -VMname "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.15" -VMtype "DEVT" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST"
+New-MRVAzureVM -VMname "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.15" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST"
 
 .Example
 -Override can be used if we already have Interface provisioned or VM has non-standard name
-New-MRVAzureVM -VMname MRV-SV-XXX-004 -ResourceGroupName "MRV-RG-XXX-001" -VMIPaddress "172.20.71.XX" -VMtype "DEVT" -VMSize "Standard_D2_v2" -Override -ChangeControl CHG0000000 -Description "TEST"
+New-MRVAzureVM -VMname MRV-SV-XXX-004 -ResourceGroupName "MRV-RG-XXX-001" -VMIPaddress "172.20.71.XX" -SubscriptionName "MSDN_01" -VMSize "Standard_D2_v2" -Override -ChangeControl CHG0000000 -Description "TEST"
 
 .Example
 -UseExistingDisk Can be used to provisionn the VM from the existing VHD
-New-MRVAzureVM -VMname "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.15" -UseExistingDisk  -VMtype "DEVT" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST"
+New-MRVAzureVM -VMname "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.15" -UseExistingDisk  -VMtype "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST"
 
 .Example
 Non standard VMs
-New-MRVAzureVM -VMname "MRV-SH-HI-001" -ResourceGroupName "MRV-RG-HI-001" -VMIPaddress "172.20.158.22" -VMtype "PROD" -VMSize "Standard_D1_v2"  -imageOffer "hanu-insight" -imagePublisher "hanu" -ImageSku "standard-byol" -useplan
-New-MRVAzureVM -VMname "MRV-SH-XXX-001" -ResourceGroupName "MRV-RG-XXX-001" -VMIPaddress "172.20.154.XX" -VMtype "PROD" -VMSize "Standard_D2_v2"   -ChangeControl CHG0000XXX -Description "XXXXXXXXX" -ImageSKU 8 -imagePublisher credativ -imageOffer Debian
-New-MRVAzureVM -VMname "MRV-SH-XXX-002" -ResourceGroupName "MRV-RG-XXX-001" -VMIPaddress "172.20.154.XX" -VMtype PROD -VMSize Standard_D2_v2  -ChangeControl CHG0000XXX -Description "Microsites Windows Server" -ImageSKU '2016-Datacenter' -Imageoffer 'WindowsServer' -ImagePublisher 'MicrosoftWindowsServer'
+New-MRVAzureVM -VMname "MRV-SH-HI-001" -ResourceGroupName "MRV-RG-HI-001" -VMIPaddress "172.20.158.22" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2"  -imageOffer "hanu-insight" -imagePublisher "hanu" -ImageSku "standard-byol" -useplan
+New-MRVAzureVM -VMname "MRV-SH-XXX-001" -ResourceGroupName "MRV-RG-XXX-001" -VMIPaddress "172.20.154.XX" -SubscriptionName "MSDN_01" -VMSize "Standard_D2_v2"   -ChangeControl CHG0000XXX -Description "XXXXXXXXX" -ImageSKU 8 -imagePublisher credativ -imageOffer Debian
+New-MRVAzureVM -VMname "MRV-SH-XXX-002" -ResourceGroupName "MRV-RG-XXX-001" -VMIPaddress "172.20.154.XX" -SubscriptionName MSDN_01 -VMSize Standard_D2_v2  -ChangeControl CHG0000XXX -Description "Microsites Windows Server" -ImageSKU '2016-Datacenter' -Imageoffer 'WindowsServer' -ImagePublisher 'MicrosoftWindowsServer'
 
 .Example
 Attach Existing Data Disks (VHDs) for the VM when creating from existing VHD.
-New-MRVAzureVM -VMname "MRV-SH-TEST-011" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.11" -VMtype "DEVT" -VMSize "Standard_D2_v2" -ChangeControl CHG0000000 -Description "TEST" -UseExistingDisk -AttachDataVHDs
+New-MRVAzureVM -VMname "MRV-SH-TEST-011" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.11" -SubscriptionName "MSDN_01" -VMSize "Standard_D2_v2" -ChangeControl CHG0000000 -Description "TEST" -UseExistingDisk -AttachDataVHDs
 
 .Example
 Add VM to backup (Recovery Service Vault)
-New-MRVAzureVM -VMname "MRV-SH-TEST-011" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.11" -VMtype "DEVT" -VMSize "Standard_D2_v2" -ChangeControl CHG0000000 -Description "TEST" -UseExistingDisk -AttachDataVHDs -EnableBackup
-New-MRVAzureVM -VMname "MRV-SH-TEST-012" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.12" -VMtype "DEVT" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST" -EnableBackup
+New-MRVAzureVM -VMname "MRV-SH-TEST-011" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.11" -SubscriptionName "MSDN_01" -VMSize "Standard_D2_v2" -ChangeControl CHG0000000 -Description "TEST" -UseExistingDisk -AttachDataVHDs -EnableBackup
+New-MRVAzureVM -VMname "MRV-SH-TEST-012" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.12" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST" -EnableBackup
 
 #>
 Function New-MRVAzureVM
@@ -555,16 +555,6 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [String]
         $WINRMPort = '5986',
-        <#        #need to be checked as it looks both $ADDSSyncTime and $ADDSSyncDescription are not in use.
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [Int]
-        $ADDSSyncTime = 960,
-
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [String]
-        $ADDSSyncDescription = 'Wating for the Sync due to the lack of connectivity to Domains ONSITE', #>
 
         #"UserName for joining Domain"
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
@@ -638,7 +628,6 @@ Function New-MRVAzureVM
         [String]
         $imageReferenceID = '',
 
-
         ######EXISTING Disks
         # Used to create  a disk
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $true)]
@@ -660,39 +649,10 @@ Function New-MRVAzureVM
         [Int]
         $DataDisksCount = 1,
 
-        <#         ######## Backup Parameters
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [switch] $EnableBackup,
-
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [switch] $DoBackup,
-
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [string] $EnableBackupPolicyName,
-
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [switch] $GetLatestBackupDetails,
-
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [int] $BackupRetainDays = 31,
-
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [ValidatePattern("(\d{2})")]
-        [String]
-        $EnableBackupPolicyID = '01',
-
-        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
-        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [int] $WaitSecondsIfBackupWasEnabled = 60 #>
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [string] $StorageDiagAccountName = $(throw "Please Provide the name for storage account used for Azure Diagnostics!"),
+
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [string] $Prefix_Main = 'MRV',
@@ -1572,7 +1532,7 @@ Example:
     {
         If ($ScriptRuntimeWin)
         {
-            Set-AzureStorageBlobContent -Context $storageContext -File $($file.FullName)  -Container $($container.Name)
+            Set-AzureStorageBlobContent -Context $storageContext -File $($file.FullName)  -Container $containername
         }
         else
         {
