@@ -62,7 +62,7 @@ $Tags = @{"Schedule_Monday"="->01:00,02:00->";
 			  "AlwaysON"='$false';}
 Update-MRVzureTag -VMname MRV-SH-TEST-010 -ResourceGroupName MRV-RG-TEST-001 -TagsTable  $Tags -SubscriptionName PROD
 #>
-Function Update-MRVzureTag
+Function Update-MRVAzureTag
 {
     Param
     (

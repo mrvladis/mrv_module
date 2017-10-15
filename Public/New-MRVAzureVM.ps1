@@ -1651,6 +1651,10 @@ Example:
         {
             Write-Verbose  'Standalone Machine. Skipping Domain Joing...'
         }
+        Write-Verbose "Updating VM Tags"
+        $TagsTable.Add('Description', $Description)
+        $TagsTable.Add('ChangeControl', $ChangeControl)
+        Update-MRVAzureTag -VMname $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag
         $time_end = get-date
         Write-Host  "Deployment finished at [$time_end]" -BackgroundColor DarkCyan
         Write-Host  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
