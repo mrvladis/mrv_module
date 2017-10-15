@@ -1595,7 +1595,7 @@ Example:
                 $DeploymentName = $ResourceGroupName + '-D-' + $VMname + '-JoinDomain-' + $timestamp
                 If ($DeploymentName.Length -gt 64) { $DeploymentName = $DeploymentName.Substring(64)}
                 Write-Verbose "Starting Domain Join Extention deployment"
-                $JoinDomainDeployment = New-AzureRmResourceGroupDeployment -Name $DeploymentName -ResourceGroupName $ResourceGroupName -Verbose -TemplateFile $JsonUrlJoinDomain -VMName $VMname -apiVersion '2015-06-15' -location $location  -domainUsername $DomainUser -domainPassword $DomainPass -domainToJoin $DomainDNS -ouPath $AzureServersOU
+                $JoinDomainDeployment = New-AzureRmResourceGroupDeployment -Name $DeploymentName -ResourceGroupName $ResourceGroupName -Verbose -TemplateUri $JsonUrlJoinDomain -VMName $VMname -apiVersion '2015-06-15' -location $location  -domainUsername $DomainUser -domainPassword $DomainPass -domainToJoin $DomainDNS -ouPath $AzureServersOU
 
                 if ($JoinDomainDeployment.ProvisioningState -like 'Succeeded')
                 {
