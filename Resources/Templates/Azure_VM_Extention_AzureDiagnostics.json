@@ -22,7 +22,7 @@
       },
       "type": "string"
     },
-    "DiagStorageResourceGroup": {
+    "StorageDiagResourceGroup": {
       "metadata": {
         "description": "Resource Group for the diagnotic Storage Account."
       },
@@ -37,7 +37,7 @@
     }
   },
   "variables": {
-    "accountid": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/',parameters('DiagStorageResourceGroup'), '/providers/','Microsoft.Storage/storageAccounts/', parameters('StorageDiagAccountName'))]",
+    "accountid": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/',parameters('StorageDiagResourceGroup'), '/providers/','Microsoft.Storage/storageAccounts/', parameters('StorageDiagAccountName'))]",
     "metricsresourceid": "[concat('\"/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name ,'/providers/','Microsoft.Compute/virtualMachines/',parameters('VMName'),'\"')]",
     "wadstart": "[concat('<WadCfg><DiagnosticMonitorConfiguration overallQuotaInMB=\"4096\"><DiagnosticInfrastructureLogs scheduledTransferPeriod=\"PT1M\" scheduledTransferLogLevelFilter=\"Undefined\"/>')]",
     "wadperfcounters": "[concat('<PerformanceCounters scheduledTransferPeriod=\"PT1M\"><PerformanceCounterConfiguration counterSpecifier=\"\\Processor(_Total)\\% Processor Time\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"CPU percentage guest OS\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Memory\\% Committed Bytes In Use\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"Memory percentage\" locale=\"en-us\"/></PerformanceCounterConfiguration></PerformanceCounters>')]",

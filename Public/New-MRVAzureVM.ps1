@@ -1115,6 +1115,12 @@ Example:
         $StorageAccountName = $StorageAccountName.Substring(0, 23)
     }
     $StorageDiagAccountName = $StorageDiagAccountName.ToLower()
+    $StorageDiagAccount = Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageDiagAccountName
+    If ($StorageDiagAccount -eq $null)
+    {
+        Write-Error "Can't find Diagnostics Storage account with the name [$StorageDiagAccountName]"
+    }
+    $StorageDiagResourceGroup = $StorageDiagAccount.ResourceGroupName
     Write-Host  "StorageAccountName: $StorageAccountName"
     Write-Host  "StorageDiagAccountName: $StorageDiagAccountName"
     Write-Host  'Populating the AvailabilitySetName to use...' -ForegroundColor DarkGreen
@@ -1484,6 +1490,7 @@ Example:
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name adminPassword -Value @{Value = $VMAdminPassword}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name storageAccountType -Value @{Value = $StorageAccountType}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageDiagAccountName -Value @{Value = $StorageDiagAccountName}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageDiagResourceGroup -Value @{Value = $StorageDiagResourceGroup}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name MicrosoftMonitoringAgentTemplate -Value @{Value = $JSONOMSTemplateFile}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name workspaceId -Value @{Value = $workspaceId}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name workspaceKey -Value @{Value = $workspaceKey}
