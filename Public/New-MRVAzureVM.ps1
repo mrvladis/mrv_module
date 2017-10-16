@@ -566,7 +566,7 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [String]
-        $DomainPass = 'NotConfigured',
+        $DomainPass = 'NotConfigured',
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
@@ -706,7 +706,7 @@ Function New-MRVAzureVM
     }
     Write-Verbose "Azure Modules have been loaded sucessfully."
     ##################Loading Modules #################
-    Write-Host "Determine OS we are runing script from..."
+    Write-Host "Determine OS we are running script from..."
     If ($($ENV:OS) -eq $null)
     {
         Write-Host "OS has been identified as NONE-Windows"
@@ -794,52 +794,12 @@ Function New-MRVAzureVM
     }
     else
     {
-        Write-Verbose  'Subscription has been selected succesfully.'
+        Write-Verbose  'Subscription has been selected successfully.'
     }
-    <# Please define you object patterns below.
-Patterns can be different and based on subscription.
-Example:
-
-    If ($SubscriptionName -eq 'SandBox')
-    {
-        $Prefix_Main = 'MRVSB'
-        $RSVPrefix = $Prefix_Main + '-RSV-'
-        $RSV_BPPrefix = $Prefix_Main + '-BP-'
-        $VMPrefix = $Prefix_Main + '-SH-'
-        $RGPrefix = $Prefix_Main + '-RG-'
-        $ASPrefix = $Prefix_Main + '-AS-'
-        $IFACEPrefix = $Prefix_Main + '-IFACE-'
-        $IPCFGPrefix = $Prefix_Main + '-IPCFG-'
-        $DomainUser = 'MRVSB-DomainJoin' 
-        $DomainPass = 'MyMRVSBPass'
-        $DomainDNS = 'mrvsandbox.local'
-        if ($AzureServersBaseOU.Substring($AzureServersBaseOU.Length - 21) -ilike 'DC=mrvsandbox,DC=local')
-        {
-            Write-Host "Custom OU in mrvSandBox Domain has been specified."	-ForegroundColor Yellow
-        }
-        else
-        {
-            Write-Host "Changing OU to mrvSandBox Domain default OU"	-ForegroundColor Yellow
-            $AzureServersBaseOU = 'OU=Servers,OU=Managed,DC=mrvsandbox,DC=local'
-        }
-        $AzureServersOU = $AzureServersBaseOU
-    }
-    else
-    {
-        $Prefix_Main = 'MRV'
-        $RSVPrefix = $Prefix_Main + '-RSV-'
-        $RSV_BPPrefix = $Prefix_Main + '-BP-'
-        $VMPrefix = $Prefix_Main + '-SH-'
-        $RGPrefix = $Prefix_Main + '-RG-'
-        $ASPrefix = $Prefix_Main + '-AS-'
-        $IFACEPrefix = $Prefix_Main + '-IFACE-'
-        $IPCFGPrefix = $Prefix_Main + '-IPCFG-'
-        $AzureServersOU = 'OU=' + $ResourceGroupName + ',' + $AzureServersBaseOU
-    }
-#>
+  
     ##### Patterns
-    $RSVPrefix = $Prefix_Main + '-' + $Prefix_RSV + '-'
-    $RSV_BPPrefix = $Prefix_Main + '-' + $Prefix_RSV_BP + '-'
+    <#     $RSVPrefix = $Prefix_Main + '-' + $Prefix_RSV + '-'
+    $RSV_BPPrefix = $Prefix_Main + '-' + $Prefix_RSV_BP + '-' #>
     $VMPrefix = $Prefix_Main + '-' + $Prefix_VM + '-'
     $RGPrefix = $Prefix_Main + '-' + $Prefix_RG + '-'
     $ASPrefix = $Prefix_Main + '-' + $Prefix_AS + '-'
@@ -847,11 +807,10 @@ Example:
     $IPCFGPrefix = $Prefix_Main + '-' + $Prefix_IPCFG + '-'
 
     $AzureServersOU = 'OU=' + $ResourceGroupName + ',' + $AzureServersBaseOU
-    ##### Patterns
     $JSONUrlBase = 'https://' + $JsonStorageAccountName + '.blob.core.windows.net/'
     $JsonSourceTemlates = $PathDelimiter + 'Resources' + $PathDelimiter + 'Templates' + $PathDelimiter
     $RegsPath = $PathDelimiter + 'Resources' + $PathDelimiter + 'Registry' + $PathDelimiter
-
+    $CustomScriptPath = $PathDelimiter + 'Resources' + $PathDelimiter + 'CustomScript' + $PathDelimiter
     $JSONBaseTemplateFile = 'Azure_VM.json'
     $JSONParametersFile = 'Parameters.json'
     $JSONBGinfoTemplateFile = 'Azure_VM_Extention_BGINFO.json'
@@ -864,7 +823,6 @@ Example:
     $VMnametmp = $VMname.Substring(0, $VMname.lastIndexOf('-'))
     $ResourceGroupNametmp = $ResourceGroupName.Substring(0, $ResourceGroupName.lastIndexOf('-'))
     $SourceVMFQDN = $SourceVM + '.' + $DomainDNS
-    #$sessionOption = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
 
     Write-Host 'Running Pre-Checks' -BackgroundColor DarkCyan
     if ($SourceVM -ne '')
@@ -1524,7 +1482,7 @@ Example:
         {
             Write-Verbose "Copying the $JSONJoinDomainTemplateFile"
             Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONJoinDomainTemplateFile) -Destination $DeploymentTempPath
-            $JsonUrlJoinDomain = $JSONUrlBase + $containername + $PathDelimiter + $JSONJoinDomainTemplateFile + $token
+            $JsonUrlJoinDomain = $JSONUrlBase + $containername + '/' + $JSONJoinDomainTemplateFile + $token
             Write-Verbose  "JoinDomain url is  $JsonUrlJoinDomain"
         }
     }
@@ -1603,7 +1561,6 @@ Example:
                 If ($DeploymentName.Length -gt 64) { $DeploymentName = $DeploymentName.Substring(64)}
                 Write-Verbose "Starting Domain Join Extention deployment"
                 $JoinDomainDeployment = New-AzureRmResourceGroupDeployment -Name $DeploymentName -ResourceGroupName $ResourceGroupName -Verbose -TemplateUri $JsonUrlJoinDomain -VMName $VMname -apiVersion '2015-06-15' -location $location  -domainUsername $DomainUser -domainPassword $DomainPass -domainToJoin $DomainDNS -ouPath $AzureServersOU
-
                 if ($JoinDomainDeployment.ProvisioningState -like 'Succeeded')
                 {
                     Write-Verbose "Domain Join Operation has been completed sucessfully."
