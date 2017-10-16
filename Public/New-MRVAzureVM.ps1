@@ -571,7 +571,7 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [String]
-        $DomainDNS = 'mrvlab.co.uk',
+        $DomainDNS = 'NotConfigured',
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
@@ -721,6 +721,7 @@ Function New-MRVAzureVM
         {
             Write-Error "We need at least Azure CLI 2.0 to be installed to continue. Please check https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest "
         }
+       
     }
     else
     {
@@ -806,11 +807,21 @@ Function New-MRVAzureVM
     $IFACEPrefix = $Prefix_Main + '-' + $Prefix_IFACE + '-'
     $IPCFGPrefix = $Prefix_Main + '-' + $Prefix_IPCFG + '-'
 
-    $AzureServersOU = 'OU=' + $ResourceGroupName + ',' + $AzureServersBaseOU
+    #$AzureServersOU = 'OU=' + $ResourceGroupName + ',' + $AzureServersBaseOU #need to work out how to connect to Domain Controller to create OU
+    $AzureServersOU = $AzureServersBaseOU
     $JSONUrlBase = 'https://' + $JsonStorageAccountName + '.blob.core.windows.net/'
     $JsonSourceTemlates = $PathDelimiter + 'Resources' + $PathDelimiter + 'Templates' + $PathDelimiter
     $RegsPath = $PathDelimiter + 'Resources' + $PathDelimiter + 'Registry' + $PathDelimiter
     $CustomScriptPath = $PathDelimiter + 'Resources' + $PathDelimiter + 'CustomScript' + $PathDelimiter
+    If ($osType -ilike "Windows")
+    {
+        $CustomScript = 'AfterDeploymentTasks.ps1'
+    }
+    elseif ($osType -ilike "Linux")
+    {
+        $CustomScript = 'AfterDeploymentTasks.sh'
+    }
+    
     $JSONBaseTemplateFile = 'Azure_VM.json'
     $JSONParametersFile = 'Parameters.json'
     $JSONBGinfoTemplateFile = 'Azure_VM_Extention_BGINFO.json'
@@ -1180,6 +1191,7 @@ Function New-MRVAzureVM
     $JSONParametersOutFileName = $JSONParametersFile.Substring(0, $JSONParametersFile.IndexOf('.')) + $OutFileName
     $JsonUrlMain = $JSONUrlBase + $containername + '/' + $OutFileName + $token
     $JSONParametersUrl = $JSONUrlBase + $containername + '/' + $JSONParametersOutFileName + $token
+    $CustomScriptUrl = $JSONUrlBase + $containername + '/' + $CustomScript + $token
     $InputTemplate = $null
     $InputTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONBaseTemplateFile
     Write-Verbose "JSON Main Url is [$JsonUrlMain]"
@@ -1193,6 +1205,7 @@ Function New-MRVAzureVM
         Write-Error  "Can't load the main template! Please check the path [$InputTemplate]"
         return $false
     }
+    Write-Host  'Main Template has been loaded sucessfully!' -ForegroundColor DarkGreen
     $InputParameters = $null
     $InputParametersPath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONParametersFile
     Write-Verbose "JSON Parameters Main Url is [$JSONParametersUrl]"
@@ -1203,39 +1216,49 @@ Function New-MRVAzureVM
     }
     catch
     {
-        Write-Error  "Can't load the main template! Please check the path [$InputTemplate]"
+        Write-Error  "Can't load the main Parameters template! Please check the path [$InputTemplate]"
         return $false
     }
-    Write-Host  'Main Template has been loaded sucessfully!' -ForegroundColor DarkGreen
+    $InputPostTasksPath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $CustomScriptPath + $CustomScript
+    $InputPostTasks = $null
+    $InputPostTasks = '$DomainFQDN = ' + $DomainDNS + "`n"
+    $InputPostTasks += '$EnGbDefaulturl = ' + $JSONUrlBase + $containername + '/' + $EnGbDefaultFile + $token + "`n"
+    $InputPostTasks += '$EnGbWelcomeurl = ' + $JSONUrlBase + $containername + '/' + $EnGbWelcomeFile + $token + "`n"
+    Write-Verbose "JSON Parameters After Deployment Script Url is [$CustomScriptUrl]"
+    Write-Host  "Loading After Deployment Script file [$InputPostTasksPath]"
+    try
+    {
+        $InputPostTasks += [system.io.file]::ReadAllText($InputPostTasksPath) 
+    }
+    catch
+    {
+        Write-Error  "Can't load After Deployment Script [$CustomScript]. After Deployment tasks would fail."
+    }
     If ($osType -eq "Windows")
     {
-        Write-Verbose  'Loading Regional Settings REG files'
-        $EnGbDefaultTemplate = $null
-        $EnGbDefaultTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbDefaultFile
-        Write-Host  "Loading Regional Settings REG from file [$EnGbDefaultTemplatePath]"
+        Write-Verbose  'Copying Regional Settings REG files'
+        Write-Host  "Copying Regional Settings REG from file [$EnGbDefaultTemplatePath]"
         try
         {
-            $EnGbDefaultTemplate = [system.io.file]::ReadAllText($EnGbDefaultTemplatePath)
+            Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbDefaultFile) -Destination $DeploymentTempPath
         }
         catch
         {
-            Write-Error  "Loading Regional Settings REG from file [$EnGbDefaultTemplatePath] loading failed..."
+            Write-Error  "Copying Regional Settings REG from file [$EnGbDefaultTemplatePath]  failed..."
             return $false
         }
-        Write-Verbose  "Regional Settings REG from file [$EnGbDefaultTemplatePath] has been loaded sucessfully!"
-        $EnGbWelcomeTemplate = $null
-        $EnGbWelcomeTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbWelcomeFile
-        Write-Verbose  "Loading Regional Settings REG from file [$EnGbWelcomeTemplatePath]"
+        Write-Verbose  "Regional Settings REG from file [$EnGbDefaultTemplatePath] has been Copied sucessfully!"
+        Write-Verbose  "Copying Regional Settings REG from file [$EnGbWelcomeTemplatePath]"
         try
         {
-            $EnGbWelcomeTemplate = [system.io.file]::ReadAllText($EnGbWelcomeTemplatePath)
+            Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbWelcomeFile) -Destination $DeploymentTempPath
         }
         catch
         {
-            Write-Error  "Loading Regional Settings REG from file [$EnGbWelcomeTemplatePath] loading failed..."
+            Write-Error  "Copying Regional Settings REG from file [$EnGbWelcomeTemplatePath]  failed..."
             return $false
         }
-        Write-Verbose  "Regional Settings REG from file [$EnGbWelcomeFile] has been loaded sucessfully!"
+        Write-Verbose  "Regional Settings REG from file [$EnGbWelcomeFile] has been Copied sucessfully!"
     }
     Write-Host "Getting VM resource and updating accordingly"  -BackgroundColor DarkCyan
     $VMResources = $InputTemplate.resources |
@@ -1472,6 +1495,17 @@ Function New-MRVAzureVM
         return $false
     }
     $json_content = $null
+    
+    Write-Verbose  "Saving After Deployment script to file [$CustomScript] as [$($DeploymentTempPath + $CustomScript)] to be uploaded for provisioning"
+    try
+    {
+        [system.io.file]::WriteAllText($($DeploymentTempPath + $CustomScript), $InputPostTasks)
+    }
+    catch
+    {
+        Write-Error  "Can't save or convert the main template to a file $($DeploymentTempPath +$CustomScript) !"
+        return $false
+    }
     if (!$StandaloneVM)
     {
         if ($UseExistingDisk -or ($osType -eq 'Linux'))
@@ -1575,10 +1609,30 @@ Function New-MRVAzureVM
         {
             Write-Verbose  'Standalone Machine. Skipping Domain Joing...'
         }
+        if ($UseExistingDisk)
+        {
+            Write-Host  'Skipping After Deployment Tasks as using Existing VHD or [SkipExtensions] specified' -ForegroundColor Yellow
+        }
+        elseif (-not $SkipExtensions)
+        {
+            Write-Verbose  'Provisioning After Deployment Tasks....'
+            $CustExtInstStatus = Set-AzureRmVMCustomScriptExtension -Name 'AfterDeploymentTasks' -FileUri $CustomScriptUrl -Run $CustomScript -VMName $VMname -Location $location -ResourceGroupName $ResourceGroupName -TypeHandlerVersion "1.4"
+            If ( -not $CustExtInstStatus.IsSuccessStatusCode)
+            {
+                Write-Error "Custom Script Deployment failed. WinRM would be unavailable, Locale settings and other stuff will be unavailable"
+                Write-Error "Error: $($CustExtInstStatus.error.code)" -ForegroundColor Yellow
+                Write-Error "Message: $($CustExtInstStatus.error.Message)" -ForegroundColor Yellow
+            }
+            else
+            {
+                Write-Host "Provisioning After Deployment Tasks Completed Sucessfully" -ForegroundColor Green
+            }
+        }   
         Write-Verbose "Updating VM Tags"
         $TagsTable.Add('Description', $Description)
         $TagsTable.Add('ChangeControl', $ChangeControl)
         Update-MRVAzureTag -VMname $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName
+        
         $time_end = get-date
         Write-Host  "Deployment finished at [$time_end]" -BackgroundColor DarkCyan
         Write-Host  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
