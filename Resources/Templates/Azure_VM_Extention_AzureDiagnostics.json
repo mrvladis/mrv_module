@@ -18,13 +18,13 @@
     },
     "StorageDiagAccountName": {
       "metadata": {
-        "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
+        "description": "Name of the Storage Account. This has to be a unique name, up to 24 chars, all lowercase."
       },
       "type": "string"
     },
     "StorageDiagResourceGroup": {
       "metadata": {
-        "description": "Resource Group for the diagnotic Storage Account."
+        "description": "Resource Group for the diagnostics Storage Account."
       },
       "type": "string"
     },

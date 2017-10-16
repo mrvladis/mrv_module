@@ -218,7 +218,7 @@ New-MRVAzureVM -VMname "MRV-SH-TEST-011" -ResourceGroupName "MRV-RG-TEST-010" -V
 .Example
 Add VM to backup (Recovery Service Vault)
 New-MRVAzureVM -VMname "MRV-SH-TEST-011" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.11" -SubscriptionName "MSDN_01" -VMSize "Standard_D2_v2" -ChangeControl CHG0000000 -Description "TEST" -UseExistingDisk -AttachDataVHDs -EnableBackup
-New-MRVAzureVM -VMname "MRV-SH-TEST-012" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.12" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST" -EnableBackup
+New-MRVAzureVM -VMname "MRV-SH-TEST-012" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.12" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST" 
 
 #>
 Function New-MRVAzureVM
@@ -794,7 +794,7 @@ Function New-MRVAzureVM
     }
     else
     {
-        Write-Verbose  'Subscription has been selected Sucessfully.'
+        Write-Verbose  'Subscription has been selected succesfully.'
     }
     <# Please define you object patterns below.
 Patterns can be different and based on subscription.

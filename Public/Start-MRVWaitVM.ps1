@@ -44,9 +44,9 @@ Port we connecting to.
  .Parameter Maxdur
 Maximum duration in seconds before function timeout. Default value is 300 seconds.
  .Example
-Start-LBEDoWaitVM -AprxDur 150 -Wait_Activity "TestWait" -VMIPaddress '172.20.129.12' -Port 53
+Start-MRVDoWaitVM -AprxDur 150 -Wait_Activity "TestWait" -VMIPaddress '172.20.129.12' -Port 53
  .Example
-Start-LBEDoWaitVM -AprxDur 150 -Wait_Activity "TestWait" -VMIPaddress '172.20.129.12' -Port 53 -Maxdur 250
+Start-MRVDoWaitVM -AprxDur 150 -Wait_Activity "TestWait" -VMIPaddress '172.20.129.12' -Port 53 -Maxdur 250
 #>
 Function Start-MRVWaitVM
 {
@@ -70,7 +70,7 @@ Function Start-MRVWaitVM
     $result = $true
     $sec = 0
     $Action = 'Connected'
-    While (-not (Test-LBETCPPort -EndPoint  $VMIPaddress -Port $Port))
+    While (-not (Test-MRVTCPPort -EndPoint  $VMIPaddress -Port $Port))
     {
         $sec += 1
         Start-Sleep -Seconds 1

@@ -54,19 +54,19 @@
     "StorageDiagAccountName": {
       "type": "string",
       "metadata": {
-        "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
+        "description": "Name of the Storage Account. This has to be a unique name, up to 24 chars, all lowercase."
       }
     },
     "StorageDiagResourceGroup": {
       "type": "string",
       "metadata": {
-        "description": "Name of the Resource Group name fopr Diag Storage Account."
+        "description": "Name of the Resource Group name for Diag Storage Account."
       }
     },
     "StorageAccountName": {
       "type": "string",
       "metadata": {
-        "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
+        "description": "Name of the Storage Account. This has to be a unique name, up to 24 chars, all lowercase."
       }
     },
     "storageAccountType": {
@@ -361,7 +361,7 @@
               "StorageDiagAccountName": {
                 "value": "[parameters('StorageDiagAccountName')]"
               },
-              "DiagStorageResourceGroup": {
+              "StorageDiagResourceGroup": {
                 "value": "[parameters('StorageDiagResourceGroup')]"
               },
               "VMName": {
