@@ -25,7 +25,7 @@ $LastDriveLetter = "O"
 Get-WmiObject win32_logicaldisk -filter 'DriveType=5' | Sort-Object -property DeviceID -Descending | ForEach-Object {
     Write-Host "Found CD-ROM drive on $($_.DeviceID)"
     $A = mountvol $_.DeviceID /l
-    $UseDriveLetter = Get-ChildItem function:[d-$LastDriveLetter]: -Name | Where-Object { (New-Object System.IO.DriveInfo($_)).DriveType -eq 'NoRootDirectory' } | Sort-Object -Descending | Select-Object -First 1
+    $UseDriveLetter = Get-ChildItem function:[$LastDriveLetter]: -Name | Where-Object { (New-Object System.IO.DriveInfo($_)).DriveType -eq 'NoRootDirectory' } | Sort-Object -Descending | Select-Object -First 1
     If ($UseDriveLetter -ne $null -AND $UseDriveLetter -ne "")
     {
         write-host "$UseDriveLetter is available to use"

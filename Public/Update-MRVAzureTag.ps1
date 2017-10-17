@@ -42,13 +42,13 @@ Hashtable that contains tags required update.
 
 .Example
 To update VM tag "AlwaysOFF" to '$false' specifying Subscription context:
-Update-MRVzureTag -VMname "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -SubscriptionName PROD -TagName "AlwaysOFF" -TagValue '$false'
+Update-MRVzureTag -ResourceName "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -SubscriptionName PROD -TagName "AlwaysOFF" -TagValue '$false'
 .Example
 To update VM tag "AlwaysOFF" to '$false' using existing Subscription context:
-Update-MRVzureTag -VMname "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -SkipSubscriptionSelection -TagName "AlwaysOFF" -TagValue '$false'
+Update-MRVzureTag -ResourceName "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -TagName "AlwaysOFF" -TagValue '$false'
 .Example
 Update tag "AlwaysOFF" to '$false' for ALL Vms in the ResourceGroup
-Get-AzureRMVM -ResourceGroupName MRV-RG-SQL-005 | % {Update-MRVzureTag -VMname $_.Name -ResourceGroupName $_.ResourceGroupName -SubscriptionName PROD -SkipSubscriptionSelection -TagName "AlwaysOFF" -TagValue '$false'}
+Get-AzureRMVM -ResourceGroupName MRV-RG-SQL-005 | % {Update-MRVzureTag -ResourceName $_.Name -ResourceGroupName $_.ResourceGroupName -SubscriptionName PROD -TagName "AlwaysOFF" -TagValue '$false'}
 .Example
 Update Set of Tags on one go.
 $Tags = @{"Schedule_Monday"="->01:00,02:00->";
@@ -60,30 +60,32 @@ $Tags = @{"Schedule_Monday"="->01:00,02:00->";
 			  "Schedule_Sunday"="->01:00,02:00->";
 			  "AlwaysOFF"='$false';
 			  "AlwaysON"='$false';}
-Update-MRVzureTag -VMname MRV-SH-TEST-010 -ResourceGroupName MRV-RG-TEST-001 -TagsTable  $Tags -SubscriptionName PROD
+Update-MRVzureTag -ResourceName MRV-SH-TEST-010 -ResourceGroupName MRV-RG-TEST-001 -TagsTable  $Tags -SubscriptionName PROD
 #>
 Function Update-MRVAzureTag
 {
     Param
     (
-        # Virtual Machine name
         [Parameter(ParameterSetName = 'OneTag', Mandatory = $true)]
         [Parameter(ParameterSetName = 'TableTag', Mandatory = $true)]
         [String]
-        $VMname,
+        $ResourceName,
 
-        # Service name to deploy to
-        [Parameter(ParameterSetName = 'OneTag', Mandatory = $true)]
-        [Parameter(ParameterSetName = 'TableTag', Mandatory = $true)]
+        [Parameter(ParameterSetName = 'OneTag', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'TableTag', Mandatory = $false)]
         [String]
-        $ResourceGroupName,
+        $ResourceGroupName = $null,
 
-        # Type of the VM
+        [Parameter(ParameterSetName = 'OneTag', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'TableTag', Mandatory = $false)]
+        [String]
+        $ResourceType = $null,
+
         [Parameter(ParameterSetName = 'OneTag', Mandatory = $true)]
         [Parameter(ParameterSetName = 'TableTag', Mandatory = $true)]
         [String]
- 
         $SubscriptionName,
+
         [Parameter(ParameterSetName = 'TableTag', Mandatory = $true)]
         [Hashtable]
         $TagsTable,
@@ -110,48 +112,48 @@ Function Update-MRVAzureTag
     {
         Write-Verbose 'Subscription has been selected successfully.'
     }
-    Write-Host "Looking for the VM with the name:[$VMname] in ResourceGroup:[$ResourceGroupName]"
-    $VM = get-azurermvm -ResourceGroupName  $ResourceGroupName -Name $VMname
-    if ($Vm -ne $null )
+    Write-Host "Looking for the Resource with the name:[$ResourceName]"
+    If ($ResourceGroupName -eq $null)
     {
-        Write-Host "VM with the name:[$VMname] have been found in ResourceGroup:[$ResourceGroupName]" -ForegroundColor Green
-        $VMres = Get-AzureRmResource -ResourceId $vm.Id
-        $Tags = $VMres.Tags
-        if ($PsCmdlet.ParameterSetName -ne 'TableTag' )
+        $Resources = Get-AzureRmResource  | where-object ResourceName -like $ResourceName
+    }
+    else
+    {
+        $Resources = Get-AzureRmResource  | where-object {($_.ResourceName -like $ResourceName) -and ($_.ResourceGroupName -like $ResourceGroupName)}
+    }
+    If ($Resources.Count -gt 1)
+    {   
+        Write-Error "More than one resource with name [$ResourceName] has been found. Use -verbose to see them."
+        Write-Verbose "$Resources"
+    }
+    elseif ($Resources.Count -eq 0)
+    {
+        Write-host "Can't find any resources with the name [$ResourceName]"
+        return $false
+    }
+    Write-Host "Resource with the name:[$($Resources.ResourceName)] have been found in ResourceGroup:[$($Resources.ResourceGroupName)]" -ForegroundColor Green
+    $Tags = $Resources.Tags
+    if ($PsCmdlet.ParameterSetName -ne 'TableTag' )
+    {
+        $TagsTable = @{$TagName = $TagValue}
+    }
+    ForEach ($TagName in $TagsTable.Keys)
+    {
+        $TagValue = $TagsTable.$TagName
+        Write-Verbose "Looking for the tag with the name:[$TagName] "
+        if ($Tags -ne $null)
         {
-            $TagsTable = @{$TagName = $TagValue}
-        }
-        ForEach ($TagName in $TagsTable.Keys)
-        {
-            $TagValue = $TagsTable.$TagName
-            Write-Verbose "Looking for the tag with the name:[$TagName] "
-            if ($Tags -ne $null)
+            if ($Tags.Keys -contains $TagName)
             {
-                if ($Tags.Keys -contains $TagName)
+                Write-Verbose "Tag with the name:[$TagName] have been found."
+                if ($Tags[$TagName] -eq $TagValue)
                 {
-                    Write-Verbose "Tag with the name:[$TagName] have been found."
-                    if ($Tags[$TagName] -eq $TagValue)
-                    {
-                        Write-Verbose "Tag [$TagName] already has value [$TagValue]. Skipping... "
-                    }
-                    else
-                    {
-                        Write-Verbose "Updating the value to:[$TagValue]"
-                        $Tags[$TagName] = $TagValue
-                    }
+                    Write-Verbose "Tag [$TagName] already has value [$TagValue]. Skipping... "
                 }
                 else
                 {
-                    Write-Verbose "Tag with the name:[$TagName] have not been found."
-                    if ($EnforceTag)
-                    {
-                        Write-Verbose "Enforcing (adding the tag)"
-                        $Tags += @{ $TagName = $TagValue; }
-                    }
-                    else
-                    {
-                        Write-Host "Tag have not being Enforced. Please use [-EnforceTag] if you want to add a new one" -ForegroundColor Red
-                    }
+                    Write-Verbose "Updating the value to:[$TagValue]"
+                    $Tags[$TagName] = $TagValue
                 }
             }
             else
@@ -160,7 +162,7 @@ Function Update-MRVAzureTag
                 if ($EnforceTag)
                 {
                     Write-Verbose "Enforcing (adding the tag)"
-                    $Tags = @{ $TagName = $TagValue; }
+                    $Tags += @{$TagName = $TagValue; }
                 }
                 else
                 {
@@ -168,23 +170,31 @@ Function Update-MRVAzureTag
                 }
             }
         }
-        Write-host "Trying to update the VM with the new tags.."
-        try
+        else
         {
-            $VMres | Set-AzureRmResource -Tag $Tags -Force
+            Write-Verbose "Tag with the name:[$TagName] have not been found."
+            if ($EnforceTag)
+            {
+                Write-Verbose "Enforcing (adding the tag)"
+                $Tags = @{ $TagName = $TagValue; }
+            }
+            else
+            {
+                Write-Host "Tag have not being Enforced. Please use [-EnforceTag] if you want to add a new one" -ForegroundColor Red
+            }
         }
-        catch
-        {
-            Write-Error "Update the VM with the new tags FAILED"
-            return $false
-        }
-        Write-host "Update the VM with the new tags have been sucessfull" -ForegroundColor Green
     }
-    else
+    Write-host "Trying to update the VM with the new tags.."
+    try
     {
-        Write-Error "VM with the name:[$VMname] have not been found in ResourceGroup:[$ResourceGroupName]"
+        $Resources | Set-AzureRmResource -Tag $Tags -Force
+    }
+    catch
+    {
+        Write-Error "Update the Resource with the new tags FAILED"
         return $false
     }
+    Write-host "Update the Resource with the new tags have been successful" -ForegroundColor Green
     return $true
 }
 

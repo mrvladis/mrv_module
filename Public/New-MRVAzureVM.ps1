@@ -694,11 +694,12 @@ Function New-MRVAzureVM
     $DiagTagName = 'Purpose'
     $DiagTagValue = 'AzureDiagnostics'
     $DiagDescription = 'Resource to host Azure Diagnostic Data. Created by New-MRVAzureVM Function.'
+    $DiagTags = @{$DiagTagName = $DiagTagValue; Description = $DiagDescription}
     Write-Host "VM Provisioning  v.1.0.0.0"
     ##################Loading Modules #################
     [datetime]$time_start = Get-Date
     $timestamp = Get-Date -Format 'yyyy-MM-dd-HH-mm'
-    Write-Host "Deployment has bneen started at [$time_start]"
+    Write-Host "Deployment started at [$time_start]"
     Write-Host 'Loading Azure Modules'
     If (!(Import-MRVModule  'AzureRM').Result)
     {
@@ -725,8 +726,7 @@ Function New-MRVAzureVM
         If ($azCMD -eq $null)
         {
             Write-Error "We need at least Azure CLI 2.0 to be installed to continue. Please check https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest "
-        }
-       
+        }    
     }
     else
     {
@@ -826,7 +826,6 @@ Function New-MRVAzureVM
     {
         $CustomScript = 'AfterDeploymentTasks.sh'
     }
-    
     $JSONBaseTemplateFile = 'Azure_VM.json'
     $JSONParametersFile = 'Parameters.json'
     $JSONBGinfoTemplateFile = 'Azure_VM_Extention_BGINFO.json'
@@ -1003,13 +1002,77 @@ Function New-MRVAzureVM
         }
         $SubNetNames += $Subnetobj.Name
         $counter += 1
+    }   
+    $LocationCode = (Get-MRVLocationCode $location).LocationCode
+    If ($StorageDiagAccountName -eq 'notdefined')
+    {
+        Write-verbose "Trying to find Diagnostics Storage account in location [$location]"
+        $StorageDiagAccount = Get-AzureRmStorageAccount  | 
+            Where-Object -FilterScript {
+            $_.Tags.Keys -contains $DiagTagName} | 
+            Where-Object -FilterScript {
+            ($_.Tags.GetEnumerator() | Where-Object {$_.Key -like $DiagTagName}).Value -like $DiagTagValue } |
+            Where-Object -FilterScript {
+            $_.PrimaryLocation -like $location }
     }
+    else
+    {
+        $StorageDiagAccountName = $StorageDiagAccountName.ToLower()
+        $StorageDiagAccount = Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageDiagAccountName
+        If ($StorageDiagAccount -eq $null)
+        {
+            Write-Error "Can't find Diagnostics Storage account with the name [$StorageDiagAccountName]"
+            Write-Error "You can either create it before script execurtion or do not specify this parameter. Script will find account or create a new one."
+        }
+        $StorageDiagResourceGroup = $StorageDiagAccount.ResourceGroupName
+    }
+    If ($StorageDiagAccount.Count -gt 1)
+    {
+        Write-Host "It has been found [$($StorageDiagAccount.count)] storage accounts with Diagnostic Tags" -ForegroundColor Green
+        $StorageDiagAccount = $StorageDiagAccount[0]
+        Write-Host "Selecting the first one with the name [$($StorageDiagAccount.StorageAccountName)]"      
+    }
+    elseif ($StorageDiagAccount.Count -eq 0)
+    {
+        Write-Host "There is no Diagnostic storage accouns found" -ForegroundColor Yellow
+        $DiagAccountID = 1
+        $StorageDiagAccountName = $($Prefix_Main + 'lrs' + $LocationCode + 'diag0' + $DiagAccountID).ToLower()
+        While ((Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageDiagAccountName) -and $DiagAccountID -lt 10)
+        {
+            Write-Verbose "Storage account with name [$StorageDiagAccountName] alreade exist."
+            $DiagAccountID ++
+            $StorageDiagAccountName = $($Prefix_Main + 'stlrs' + $LocationCode + 'diag0' + $DiagAccountID).ToLower()
+        }
+        If ($DiagAccountID -eq 10)
+        {
+            Write-Error "It is more than 10 accounts has been found that meet diagnostics name but don't have tags assosiated. This looks wrong!"
+            return $false
+        }
+        $DiagRGName = $($Prefix_Main + '-' + $Prefix_RG + '-' + "DIAG-" + $LocationCode).ToUpper()
+        If (! (Get-AzureRmResourceGroup -Name $DiagRGName -ErrorAction SilentlyContinue))
+        {
+            Write-verbose "Going to create Resource Group for Diagnostic Storage account with the name [$DiagRGName]"
+            New-AzureRmResourceGroup $DiagRGName -Location $location
+        }
+        else 
+        {
+            Write-verbose "Resource Group for Diagnostic Storage account with the name [$DiagRGName] already exist"    
+        }
+        Write-verbose "Trying to create  Diagnostic Storage account with the name [$StorageDiagAccountName]"
+        $StorageDiagAccount = New-AzureRmStorageAccount -Name $StorageDiagAccountName -ResourceGroupName $DiagRGName -Location $location -SkuName Standard_LRS
+        Start-MRVWait -AprxDur 10 -Wait_Activity  "Waiting for ARM sync"
+        Write-verbose "Setting tags on  Diagnostic Storage account with the name [$StorageDiagAccountName]"
+        Update-MRVAzureTag -ResourceName $StorageDiagAccountName -ResourceGroupName $DiagRGName -SubscriptionName $SubscriptionName -TagsTable $DiagTags -EnforceTag
+    }
+    $StorageDiagResourceGroup = $StorageDiagAccount.ResourceGroupName
+    $StorageDiagAccountName = $StorageDiagAccount.StorageAccountName
     Write-Host  'Virtual Macine will be deployed with the following parameters:' -ForegroundColor DarkGreen
     Write-Host  "VNetResourceGroup: [$VNetResourceGroup]"
     Write-Host  "VNetName: [$VNetName]"
     Write-Host  "Location: [$location]"
     Write-Host  "SubNetNames: [$SubNetNames]"
     Write-Host  "FaultDomainCount [$FaultDomainCount] UpdateDomainCount [$UpdateDomainCount]"
+    Write-Host  "StorageDiagAccountName: $StorageDiagAccountName"
     If ($imagePublisher -ne 'MicrosoftWindowsServer')
     {
         Write-Verbose  'Custom image has been specified. Checking if it exist....'
@@ -1081,7 +1144,6 @@ Function New-MRVAzureVM
         return $false
     }
     Write-Verbose  'Populating the StorageAccountName to use...'
-    $LocationCode = (Get-MRVLocationCode $location).LocationCode
     $StorageAccountName = $($Prefix_Main + ($StorageAccountType.Substring(0, 2)).ToLower() + ($StorageAccountType.Substring($StorageAccountType.IndexOf('_') + 1, $StorageAccountType.Length - $StorageAccountType.IndexOf('_') - 1)).ToLower() + $LocationCode.ToLower() + ($ResourceGroupName.Substring($ResourceGroupName.IndexOf('-'), $ResourceGroupName.Length - $ResourceGroupName.IndexOf('-')) -replace '-', '').ToLower() + $StorageAccountID).ToLower()
     If ($StorageAccountName.Length -gt 23)
     {
@@ -1089,12 +1151,12 @@ Function New-MRVAzureVM
         $StorageAccountName = $StorageAccountName.Substring(0, 23)
     }
     $StorageDiagAccountName = $StorageDiagAccountName.ToLower()
-    $StorageDiagAccount = Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageDiagAccountName
+    <# $StorageDiagAccount = Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageDiagAccountName
     If ($StorageDiagAccount -eq $null)
     {
         Write-Error "Can't find Diagnostics Storage account with the name [$StorageDiagAccountName]"
     }
-    $StorageDiagResourceGroup = $StorageDiagAccount.ResourceGroupName
+    $StorageDiagResourceGroup = $StorageDiagAccount.ResourceGroupName #>
     Write-Host  "StorageAccountName: $StorageAccountName"
     Write-Host  "StorageDiagAccountName: $StorageDiagAccountName"
     Write-Host  'Populating the AvailabilitySetName to use...' -ForegroundColor DarkGreen
@@ -1242,10 +1304,11 @@ Function New-MRVAzureVM
     If ($osType -eq "Windows")
     {
         Write-Verbose  'Copying Regional Settings REG files'
+        $EnGbDefaultTemplatePath = $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbDefaultFile)
         Write-Host  "Copying Regional Settings REG from file [$EnGbDefaultTemplatePath]"
         try
         {
-            Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbDefaultFile) -Destination $DeploymentTempPath
+            Copy-Item -Path $EnGbDefaultTemplatePath  -Destination $DeploymentTempPath
         }
         catch
         {
@@ -1253,10 +1316,11 @@ Function New-MRVAzureVM
             return $false
         }
         Write-Verbose  "Regional Settings REG from file [$EnGbDefaultTemplatePath] has been Copied sucessfully!"
+        $EnGbWelcomeTemplatePath = $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbWelcomeFile)
         Write-Verbose  "Copying Regional Settings REG from file [$EnGbWelcomeTemplatePath]"
         try
         {
-            Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbWelcomeFile) -Destination $DeploymentTempPath
+            Copy-Item -Path $EnGbWelcomeTemplatePath -Destination $DeploymentTempPath
         }
         catch
         {
@@ -1634,8 +1698,7 @@ Function New-MRVAzureVM
         Write-Verbose "Updating VM Tags"
         $TagsTable.Add('Description', $Description)
         $TagsTable.Add('ChangeControl', $ChangeControl)
-        Update-MRVAzureTag -VMname $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName
-        
+        Update-MRVAzureTag -ResourceName $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName     
         $time_end = get-date
         Write-Host  "Deployment finished at [$time_end]" -BackgroundColor DarkCyan
         Write-Host  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
