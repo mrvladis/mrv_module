@@ -191,11 +191,11 @@ https://azure.microsoft.com/en-us/updates/accelerated-networking-in-preview/ for
 
 .Example
 Create VM from the Azure Market Image
-New-MRVAzureVM -VMname "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.15" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST"
+New-MRVAzureVM -VMname "MRV-SH-TEST-015" -ResourceGroupName "MRV-RG-TEST-015" -VMIPaddress "172.20.65.15" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST"
 
 .Example
 -Override can be used if we already have Interface provisioned or VM has non-standard name
-New-MRVAzureVM -VMname MRV-SV-XXX-004 -ResourceGroupName "MRV-RG-XXX-001" -VMIPaddress "172.20.71.XX" -SubscriptionName "MSDN_01" -VMSize "Standard_D2_v2" -Override -ChangeControl CHG0000000 -Description "TEST"
+New-MRVAzureVM -VMname MRV-SV-XXX-004 -ResourceGroupName "MRV-RG-XXX-001" -VMIPaddress "172.20.71.XX" -SubscriptionName "MSDN_01" -VMSize "Standard_D2_v2" -Override -ChangeControl CHG0000000 -Description "TEST" -Override
 
 .Example
 -UseExistingDisk Can be used to provisionn the VM from the existing VHD
@@ -225,7 +225,7 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $true)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $true)]
         [String]
-        $VMname = "MRV-SH-TEST-013",
+        $VMname = "MRV-SH-TEST-015",
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $true)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $true)]
@@ -350,7 +350,9 @@ Function New-MRVAzureVM
             'Standard_H8m',
             'Standard_H16m',
             'Standard_H16r',
-            'Standard_H16mr'
+            'Standard_H16mr',
+			'Standard_B2s',
+			'Standard_B2ms'
         )]
         [String]
         $VMSize = 'Standard_D1_v2',
@@ -374,7 +376,7 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $true)]
         [String]
         [ValidatePattern("((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))")]
-        $VMIPaddresses = "172.20.65.13",
+        $VMIPaddresses = "172.20.65.15",
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
@@ -701,6 +703,7 @@ Function New-MRVAzureVM
     $timestamp = Get-Date -Format 'yyyy-MM-dd-HH-mm'
     Write-Host "Deployment started at [$time_start]"
     Write-Host 'Loading Azure Modules'
+	Write-Host 'Please Wait...'
     If (!(Import-MRVModule  'AzureRM').Result)
     {
         Write-Verbose "Can't load AzureRM module. Let's check if AzureRM.NetCore can be loaded"
