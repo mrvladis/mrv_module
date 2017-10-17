@@ -36,15 +36,11 @@ Should be formatted according to the Naming Convention.
 Name for the Resource Group that will represent the service within the Azure and contain all the service elements.
 Should be formatted according to the Naming Convention.
 
- .Parameter Subscription
+ .Parameter SubscriptionName
 Used to specify the subscription that the VM belongs to.
-Currently we have three environments:
-Live (PROD)
-Non-Live (DEVT)
-Enfield 2017 (EN17)
 
  .Parameter VMIPaddresses
-Specifies the IP addresses that is going to be used by VM. The list of Networks and IP addresses can be found here: https://enfield365.sharepoint.com/enfieldEA/Inf/Documents/Networks/Azure%20Networks%20and%20Subnets.xlsx?web=1
+Specifies the IP addresses that is going to be used by VM. 
 Can Accept one or multiple comma separated values. Examples:
  -VMIPaddresses “192.168.0.1” or -VMIPaddresses “192.168.0.1, 192.168.0.2, 192.168.0.3”
 Note!  If supplying multiple IP addresses -  IfaceCount parameter should be used and provide the number of IP addresses.
@@ -651,7 +647,7 @@ Function New-MRVAzureVM
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [string] $StorageDiagAccountName = $(throw "Please Provide the name for storage account used for Azure Diagnostics!"),
+        [string] $StorageDiagAccountName = 'notdefined',
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
@@ -664,12 +660,18 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [string] $Prefix_RSV_BP = 'BP',
-        $Prefix_VM = 'SH',
+        
+        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
+        [string] $Prefix_VM = 'SH',
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [string] $Prefix_RG = 'RG',
-        $Prefix_AS = 'AS',
+        
+        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
+        [string] $Prefix_AS = 'AS',
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
@@ -689,6 +691,9 @@ Function New-MRVAzureVM
 ====> <=====
 #>
     $MaxDiskSize = 4095
+    $DiagTagName = 'Purpose'
+    $DiagTagValue = 'AzureDiagnostics'
+    $DiagDescription = 'Resource to host Azure Diagnostic Data. Created by New-MRVAzureVM Function.'
     Write-Host "VM Provisioning  v.1.0.0.0"
     ##################Loading Modules #################
     [datetime]$time_start = Get-Date
@@ -747,7 +752,7 @@ Function New-MRVAzureVM
                     if (!(Test-MRVCredentials -DomainCreds $DomainAdminCreds))
                     {
                         Write-Error "Can't validate credentials!"
-                        return $false
+                        return $false 
                     }
                 }
                 else
@@ -1222,8 +1227,8 @@ Function New-MRVAzureVM
     $InputPostTasksPath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $CustomScriptPath + $CustomScript
     $InputPostTasks = $null
     $InputPostTasks = '$DomainFQDN = ' + $DomainDNS + "`n"
-    $InputPostTasks += '$EnGbDefaulturl = ' + $JSONUrlBase + $containername + '/' + $EnGbDefaultFile + $token + "`n"
-    $InputPostTasks += '$EnGbWelcomeurl = ' + $JSONUrlBase + $containername + '/' + $EnGbWelcomeFile + $token + "`n"
+    $InputPostTasks += '$EnGbDefaulturl = ''' + $JSONUrlBase + $containername + '/' + $EnGbDefaultFile + $token + "'`n"
+    $InputPostTasks += '$EnGbWelcomeurl = ''' + $JSONUrlBase + $containername + '/' + $EnGbWelcomeFile + $token + "'`n"
     Write-Verbose "JSON Parameters After Deployment Script Url is [$CustomScriptUrl]"
     Write-Host  "Loading After Deployment Script file [$InputPostTasksPath]"
     try
@@ -1576,8 +1581,6 @@ Function New-MRVAzureVM
     {
         Write-Host 'Deployment Succeed!' -ForegroundColor DarkGreen
     }
-
-
     if (($DeploymentSatus.ProvisioningState -like 'Succeeded') -or $ForcePostTasks)
     {
         Write-Verbose "Performing After Deployment Tasks"
@@ -1620,8 +1623,8 @@ Function New-MRVAzureVM
             If ( -not $CustExtInstStatus.IsSuccessStatusCode)
             {
                 Write-Error "Custom Script Deployment failed. WinRM would be unavailable, Locale settings and other stuff will be unavailable"
-                Write-Error "Error: $($CustExtInstStatus.error.code)" -ForegroundColor Yellow
-                Write-Error "Message: $($CustExtInstStatus.error.Message)" -ForegroundColor Yellow
+                Write-Error "Error: $($CustExtInstStatus.error.code)"
+                Write-Error "Message: $($CustExtInstStatus.error.Message)"
             }
             else
             {

@@ -108,7 +108,7 @@ Function Update-MRVAzureTag
     }
     else
     {
-        Write-Verbose 'Subscription has been selected Sucessfully.'
+        Write-Verbose 'Subscription has been selected successfully.'
     }
     Write-Host "Looking for the VM with the name:[$VMname] in ResourceGroup:[$ResourceGroupName]"
     $VM = get-azurermvm -ResourceGroupName  $ResourceGroupName -Name $VMname
