@@ -220,7 +220,8 @@
     "apiVersionNIC": "2016-09-01",
     "apiVersionpw": "2016-04-30-preview",
     "apiVersiontemplate": "2015-01-01",
-    "apiVersionST": "2015-06-15",
+    "apiVersionST": "2017-06-01",
+    "apiVersionSTDiag": "2015-06-15",
     "vnetID": "[resourceId(parameters('VNetResourceGroup'), 'Microsoft.Network/virtualNetworks/', parameters('VNetName'))]"
   },
   "resources": [
@@ -228,8 +229,21 @@
       "apiVersion": "[variables('apiVersionST')]",
       "location": "[parameters('location')]",
       "name": "[parameters('StorageAccountName')]",
+      "sku": {
+        "name": "[parameters('storageAccountType')]"
+      },
+      "kind": "Storage",
       "properties": {
-        "accountType": "[parameters('storageAccountType')]"
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          },
+        }
       },
       "type": "Microsoft.Storage/storageAccounts"
     },
@@ -353,7 +367,7 @@
             },
             "parameters": {
               "apiVersion": {
-                "value": "[variables('apiVersionST')]"
+                "value": "[variables('apiVersionSTDiag')]"
               },
               "location": {
                 "value": "[parameters('location')]"

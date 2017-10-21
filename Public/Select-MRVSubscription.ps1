@@ -64,9 +64,35 @@ Function Select-MRVSubscription
         [Parameter(ParameterSetName = 'InteractiveLogin', Mandatory = $false)]
         [Parameter(ParameterSetName = 'CredentialsLogin', Mandatory = $false)]
         [Parameter(ParameterSetName = 'SPNLogin', Mandatory = $false)]
-        [ValidateSet('eastasia', 'southeastasia', 'centralus', 'eastus', 'eastus2', 'westus', 'northcentralus', 'southcentralus', 'northeurope', 'westeurope', 'japanwest', 'japaneast', 'brazilsouth', 'australiaeast', 'australiasoutheast', 'southindia', 'centralindia', 'westindia', 'canadacentral', 'canadaeast', 'uksouth', 'ukwest', 'westcentralus', 'westus2', 'koreacentral', 'koreasouth')]
-        [string]
-        $location = "northeurope",
+        [ValidateSet('eastasia',
+            'southeastasia',
+            'centralus',
+            'eastus',
+            'eastus2',
+            'westus',
+            'northcentralus',
+            'southcentralus',
+            'northeurope',
+            'westeurope',
+            'japanwest',
+            'japaneast',
+            'brazilsouth',
+            'australiaeast',
+            'australiasoutheast',
+            'southindia',
+            'centralindia',
+            'westindia',
+            'canadacentral',
+            'canadaeast',
+            'uksouth',
+            'ukwest',
+            'westcentralus',
+            'westus2',
+            'koreacentral',
+            'koreasouth'
+        )]
+        [String]
+        $Location = "northeurope",
 
         [Parameter(ParameterSetName = 'CredentialsLogin', Mandatory = $true)]
         [Parameter(ParameterSetName = 'SPNLogin', Mandatory = $true)]
@@ -160,6 +186,7 @@ Function Select-MRVSubscription
             {
                 Write-Error "Can't select subscription [$SubscriptionName]. Make sure that you have access and logged in to Azure"
                 $Reason = "Can't select subscription [$SubscriptionName]"
+                $LoggedIn = $false
                 $result = @{Result = $LoggedIn; ADDSServers = $adservers; SubscriptionCode = $SubscriptionCode; Reson = $Reason; Error = $($Error[0]); AzureContext = $AzureContext}
                 return $result
             }

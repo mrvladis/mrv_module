@@ -42,7 +42,7 @@ Used to specify the subscription that the VM belongs to.
  .Parameter VMIPaddresses
 Specifies the IP addresses that is going to be used by VM. 
 Can Accept one or multiple comma separated values. Examples:
- -VMIPaddresses “192.168.0.1” or -VMIPaddresses “192.168.0.1, 192.168.0.2, 192.168.0.3”
+ -VMIPaddresses “192.168.0.1” or -VMIPaddresses 192.168.0.1, 192.168.0.2, 192.168.0.3
 Note!  If supplying multiple IP addresses -  IfaceCount parameter should be used and provide the number of IP addresses.
 Script will look for the Virtual Networks and their subnets to identify it based on the IP address.
 Note!  Subnet should be created before trying to provision VM.
@@ -351,8 +351,8 @@ Function New-MRVAzureVM
             'Standard_H16m',
             'Standard_H16r',
             'Standard_H16mr',
-			'Standard_B2s',
-			'Standard_B2ms'
+            'Standard_B2s',
+            'Standard_B2ms'
         )]
         [String]
         $VMSize = 'Standard_D1_v2',
@@ -374,8 +374,8 @@ Function New-MRVAzureVM
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $true)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $true)]
-        [String]
-        [ValidatePattern("((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))")]
+        [String[]]
+        #[ValidatePattern("((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))")]
         $VMIPaddresses = "172.20.65.15",
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
@@ -703,7 +703,7 @@ Function New-MRVAzureVM
     $timestamp = Get-Date -Format 'yyyy-MM-dd-HH-mm'
     Write-Host "Deployment started at [$time_start]"
     Write-Host 'Loading Azure Modules'
-	Write-Host 'Please Wait...'
+    Write-Host 'Please Wait...'
     If (!(Import-MRVModule  'AzureRM').Result)
     {
         Write-Verbose "Can't load AzureRM module. Let's check if AzureRM.NetCore can be loaded"
@@ -830,7 +830,7 @@ Function New-MRVAzureVM
         $CustomScript = 'AfterDeploymentTasks.sh'
     }
     $JSONBaseTemplateFile = 'Azure_VM.json'
-    $JSONParametersFile = 'Parameters.json'
+    $JSONParametersFile = 'Azure_VM_Parameters.json'
     $JSONBGinfoTemplateFile = 'Azure_VM_Extention_BGINFO.json'
     $JSONAzureDiagnosticsTemplateFile = 'Azure_VM_Extention_AzureDiagnostics.json'
     $JSONOMSTemplateFile = 'Azure_VM_Extention_OMS.json'
@@ -904,25 +904,15 @@ Function New-MRVAzureVM
     }
 
     #} ##################Pre-run Checks
-    Write-Host "Validating VMIPaddresses [$VMIPaddresses] parameter"
-    if (($VMIPaddresses -like "*,*") -or ($IfaceCount -eq 1))
+    Write-Host "Validating VMIPaddresses"
+    if ($VMIPaddresses.Count -ne $IfaceCount)
     {
-        [array]$VMIPaddresses_array = $VMIPaddresses -split "," | ForEach-Object {$_.Trim()}
-        $VMIPaddress = $VMIPaddresses_array[0]
-        if ($VMIPaddresses_array.Count -ne $IfaceCount)
-        {
-            Write-Error "You have specified [$IfaceCount] of Interfaces, but provided only [$($VMIPaddresses_array.Count)] IP addresses"
-            return $false
-        }
-        if (($VMIPaddresses_array | Sort-Object -Unique).Count -ne $VMIPaddresses_array.Count)
-        {
-            Write-Error "Looks like you have duplicates in IP addresses"
-            return $false
-        }
+        Write-Error "You have specified [$IfaceCount] of Interfaces, but provided only [$($VMIPaddresses.Count)] IP addresses"
+        return $false
     }
-    else
+    if (($VMIPaddresses | Sort-Object -Unique).Count -ne $VMIPaddresses.Count)
     {
-        Write-Error "Provided value for VMIPaddresses [$VMIPaddresses] does not look good"
+        Write-Error "Looks like you have duplicates in IP addresses"
         return $false
     }
     Write-Verbose "[$VMIPaddress] will be used as main IP address."
@@ -943,17 +933,17 @@ Function New-MRVAzureVM
             Write-Verbose  "VM Name $VMname free to use."
         }
         Write-Host  'Performing IP verification and populating the dependent variables'
-        ForEach ($IP in $VMIPaddresses_array)
+        ForEach ($IP in $VMIPaddresses)
         {
             Write-Verbose "Checking if IP [$IP] is free for use"
-            if (Test-MRVIPUsed $VMIPaddresses)
+            if (Test-MRVIPUsed $IP)
             {
                 $IPCFGUsed = Get-AzureRmNetworkInterface |
                     ForEach-Object -Process {
                     $_.IpConfigurations
                 } |
                     Where-Object -FilterScript {
-                    $_.PrivateIpAddress -like ($VMIPaddresses)
+                    $_.PrivateIpAddress -like ($IP)
                 }
                 Write-Error  "IP address is already used by IP Config $($IPCFGUsed.Name)!"
                 return $false
@@ -966,8 +956,8 @@ Function New-MRVAzureVM
     }
     $counter = 1
     $SubNetNames = @()
-    Write-Host  "Checking if Subnets do exist for the provided value for VMIPaddresses [$VMIPaddresses]" -BackgroundColor DarkCyan
-    ForEach ($IP in $VMIPaddresses_array)
+    Write-Host  "Checking if Subnets do exist for the provided value for VMIPaddresses" -BackgroundColor DarkCyan
+    ForEach ($IP in $VMIPaddresses)
     {
         Write-Host  "Trying to find the VNET and SubNET for the provided IP [$IP]"
         $SubNetPattern = $IP.Substring(0, $IP.LastIndexOf('.') + 1)
@@ -998,7 +988,7 @@ Function New-MRVAzureVM
         {
             If (($VNetName -ne $VirtualNetworkobj.name) -or ($VNetResourceGroup -ne $VirtualNetworkobj.ResourceGroupName))
             {
-                Write-Error "It looks like IP [$IP] belongs to VNET [$($VirtualNetworkobj.name)] while IP [$($VMIPaddresses_array[0])] belongs to VNET [$VNetName]!"
+                Write-Error "It looks like IP [$IP] belongs to VNET [$($VirtualNetworkobj.name)] while IP [$($VMIPaddresses[0])] belongs to VNET [$VNetName]!"
                 Write-Error "ALL IP addresses must be from the same VNET"
                 return $false
             }
@@ -1530,7 +1520,7 @@ Function New-MRVAzureVM
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name AzureDiagnosticsTemplate -Value @{Value = $JSONAzureDiagnosticsTemplateFile}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name Token -Value @{Value = $token}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name vmSize -Value @{Value = $VMSize}
-    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VMIPaddresses -Value @{Value = $VMIPaddresses_array}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VMIPaddresses -Value @{Value = $VMIPaddresses}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VNetName -Value @{Value = $VNetName}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name SubNetNames -Value @{Value = $SubNetNames}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name IPConfigNames -Value @{Value = $IPConfigNames_array}
@@ -1623,7 +1613,7 @@ Function New-MRVAzureVM
         <#  $DeploymentSatus = New-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Verbose -Name $DeploymentName -TemplateUri $JsonUrlMain -VMName $VMname `
             -location $location -StorageAccountName $StorageAccountName -ImageSKU $ImageSKU `
             -templateBaseUrl $JsonTemplatesUrl -BGInfoTemplate $JSONBGinfoTemplateFile -AzureDiagnosticsTemplate $JSONAzureDiagnosticsTemplateFile -Token $token `
-            -vmSize $VMSize -VMIPaddresses $VMIPaddresses_array -VNetName $VNetName -SubNetNames $SubNetNames `
+            -vmSize $VMSize -VMIPaddresses $VMIPaddresses -VNetName $VNetName -SubNetNames $SubNetNames `
             -IPConfigNames $IPConfigNames_array -IfaceNames $IfaceNames_array -IfaceCount $IfaceCount -VMDiskName $VMDiskName -availabilitySetName $availabilitySetName `
             -VNetResourceGroup $VNetResourceGroup -adminUserName $VMAdminUsername -adminPassword $VMAdminPassword -storageAccountType $StorageAccountType -StorageDiagAccountName $StorageDiagAccountName `
             -MicrosoftMonitoringAgentTemplate $JSONOMSTemplateFile -workspaceId $workspaceId  -workspaceKey $workspaceKey -imagePublisher $imagePublisher -imageOffer $imageOffer `

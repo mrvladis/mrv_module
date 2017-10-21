@@ -37,8 +37,35 @@ Function Get-MRVLocationCode
 {
     param (
         [Parameter(Mandatory = $false)]
-        [ValidateSet('northeurope', 'westeurope', 'uksouth', 'ukwest')]
-        [string] $location = "northeurope"
+        [ValidateSet('eastasia',
+            'southeastasia',
+            'centralus',
+            'eastus',
+            'eastus2',
+            'westus',
+            'northcentralus',
+            'southcentralus',
+            'northeurope',
+            'westeurope',
+            'japanwest',
+            'japaneast',
+            'brazilsouth',
+            'australiaeast',
+            'australiasoutheast',
+            'southindia',
+            'centralindia',
+            'westindia',
+            'canadacentral',
+            'canadaeast',
+            'uksouth',
+            'ukwest',
+            'westcentralus',
+            'westus2',
+            'koreacentral',
+            'koreasouth'
+        )]
+        [String]
+        $Location = "northeurope"
     )
     $LocationCode = "NA"
     $Success = $false
