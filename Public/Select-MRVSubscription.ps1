@@ -156,11 +156,11 @@ Function Select-MRVSubscription
             }
             else
             {
-                Write-Verbose "Looks strange, but I can't see any Environement. Does this account has access to any?"
+                Write-Verbose "Looks strange, but I can't see any Environment. Does this account has access to any?"
                 Write-Verbose "Context we have got:"
                 $AzureContext
                 Write-Verbose "Environments:"
-                Write-Verbose $($AzureContext.Environments)
+                Write-Verbose "[$($AzureContext.Environments)]"
 
             }
         }

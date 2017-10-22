@@ -181,6 +181,12 @@
       },
       "type": "string"
     },
+    "workspaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics workspace name"
+      }
+    },
     "imagePublisher": {
       "type": "string",
       "defaultValue": "MicrosoftWindowsServer",
@@ -242,7 +248,7 @@
             "file": {
               "enabled": true
             }
-          },
+          }
         }
       },
       "type": "Microsoft.Storage/storageAccounts"
@@ -412,6 +418,9 @@
               },
               "workspaceKey": {
                 "value": "[parameters('workspaceKey')]"
+              },
+              "workspaceName": {
+                "value": "[parameters('workspaceName')]"
               }
             }
           },

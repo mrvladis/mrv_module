@@ -73,12 +73,12 @@ Function Get-MRVLocationCode
     {
         "northeurope"
         {
-            $LocationCode = "NE"
+            $LocationCode = "NEU"
             $Success = $true
         }
         "westeurope"
         {
-            $LocationCode = "WE"
+            $LocationCode = "WEU"
             $Success = $true
         }
         "uksouth"
@@ -89,6 +89,111 @@ Function Get-MRVLocationCode
         "ukwest"
         {
             $LocationCode = "UKW"
+            $Success = $true
+        }
+        "eastasia"
+        {
+            $LocationCode = "ASE"
+            $Success = $true
+        }
+        "southeastasia"
+        {
+            $LocationCode = "ASS"
+            $Success = $true
+        }
+        "centralus"
+        {
+            $LocationCode = "USC"
+            $Success = $true
+        }
+        "eastus"
+        {
+            $LocationCode = "USE"
+            $Success = $true
+        }
+        "eastus2"
+        {
+            $LocationCode = "USE2"
+            $Success = $true
+        }
+        "westus"
+        {
+            $LocationCode = "USW"
+            $Success = $true
+        }
+        "northcentralus"
+        {
+            $LocationCode = "USNC"
+            $Success = $true
+        }
+        "southcentralus"
+        {
+            $LocationCode = "USSC"
+            $Success = $true
+        }
+        "japanwest"
+        {
+            $LocationCode = "JAW"
+            $Success = $true
+        }
+        "japaneast"
+        {
+            $LocationCode = "JAW"
+            $Success = $true
+        }
+        "brazilsouth"
+        {
+            $LocationCode = "BRS"
+            $Success = $true
+        }
+        "australiaeast"
+        {
+            $LocationCode = "AUE"
+            $Success = $true
+        }
+        "southindia"
+        {
+            $LocationCode = "INS"
+            $Success = $true
+        }
+        "centralindia"
+        {
+            $LocationCode = "INC"
+            $Success = $true
+        }
+        "westindia"
+        {
+            $LocationCode = "INW"
+            $Success = $true
+        }
+        "canadacentral"
+        {
+            $LocationCode = "CAC"
+            $Success = $true
+        }
+        "canadaeast"
+        {
+            $LocationCode = "CAE"
+            $Success = $true
+        }
+        "westcentralus"
+        {
+            $LocationCode = "USWC"
+            $Success = $true
+        }
+        "westus2"
+        {
+            $LocationCode = "USW2"
+            $Success = $true
+        }
+        "koreacentral"
+        {
+            $LocationCode = "KOC"
+            $Success = $true
+        }
+        "koreasouth"
+        {
+            $LocationCode = "KOS"
             $Success = $true
         }
     }

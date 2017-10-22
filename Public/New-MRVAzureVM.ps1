@@ -40,7 +40,7 @@ Should be formatted according to the Naming Convention.
 Used to specify the subscription that the VM belongs to.
 
  .Parameter VMIPaddresses
-Specifies the IP addresses that is going to be used by VM. 
+Specifies the IP addresses that is going to be used by VM.
 Can Accept one or multiple comma separated values. Examples:
  -VMIPaddresses “192.168.0.1” or -VMIPaddresses 192.168.0.1, 192.168.0.2, 192.168.0.3
 Note!  If supplying multiple IP addresses -  IfaceCount parameter should be used and provide the number of IP addresses.
@@ -214,7 +214,7 @@ New-MRVAzureVM -VMname "MRV-SH-TEST-011" -ResourceGroupName "MRV-RG-TEST-010" -V
 .Example
 Add VM to backup (Recovery Service Vault)
 New-MRVAzureVM -VMname "MRV-SH-TEST-011" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.11" -SubscriptionName "MSDN_01" -VMSize "Standard_D2_v2" -ChangeControl CHG0000000 -Description "TEST" -UseExistingDisk -AttachDataVHDs -EnableBackup
-New-MRVAzureVM -VMname "MRV-SH-TEST-012" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.12" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST" 
+New-MRVAzureVM -VMname "MRV-SH-TEST-012" -ResourceGroupName "MRV-RG-TEST-010" -VMIPaddress "172.20.65.12" -SubscriptionName "MSDN_01" -VMSize "Standard_D1_v2" -ChangeControl CHG0000000 -Description "TEST"
 
 #>
 Function New-MRVAzureVM
@@ -525,23 +525,28 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [String]
-        $JsonStorageAccountName = 'mrvstlrsuksrgmgmt00101',
+        $JsonStorageAccountName = 'notdefined',
 
-        #Storgage account key, where the JSON Templates stored during provisioning
+        <# #Storgage account key, where the JSON Templates stored during provisioning
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [String]
         $JsonStorageAccountKey = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+ #>
+        [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
+        [String]
+        $WorkSpaceId = 'notdefined',
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [String]
-        $workspaceId = 'NotConfigured',
+        $WorkSpaceKey = 'notdefined',
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [String]
-        $workspaceKey = 'NotConfigured',
+        $WorkSpaceName = 'notdefined',
 
         #Time in minutes for the token to expire!
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
@@ -649,7 +654,7 @@ Function New-MRVAzureVM
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
-        [string] $StorageDiagAccountName = 'notdefined',
+        [string] $DiagStorageAccountName = 'notdefined',
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
@@ -662,7 +667,7 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [string] $Prefix_RSV_BP = 'BP',
-        
+
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [string] $Prefix_VM = 'SH',
@@ -670,7 +675,7 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [string] $Prefix_RG = 'RG',
-        
+
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [string] $Prefix_AS = 'AS',
@@ -693,10 +698,6 @@ Function New-MRVAzureVM
 ====> <=====
 #>
     $MaxDiskSize = 4095
-    $DiagTagName = 'Purpose'
-    $DiagTagValue = 'AzureDiagnostics'
-    $DiagDescription = 'Resource to host Azure Diagnostic Data. Created by New-MRVAzureVM Function.'
-    $DiagTags = @{$DiagTagName = $DiagTagValue; Description = $DiagDescription}
     Write-Host "VM Provisioning  v.1.0.0.0"
     ##################Loading Modules #################
     [datetime]$time_start = Get-Date
@@ -729,7 +730,7 @@ Function New-MRVAzureVM
         If ($azCMD -eq $null)
         {
             Write-Error "We need at least Azure CLI 2.0 to be installed to continue. Please check https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest "
-        }    
+        }
     }
     else
     {
@@ -755,7 +756,7 @@ Function New-MRVAzureVM
                     if (!(Test-MRVCredentials -DomainCreds $DomainAdminCreds))
                     {
                         Write-Error "Can't validate credentials!"
-                        return $false 
+                        return $false
                     }
                 }
                 else
@@ -805,7 +806,7 @@ Function New-MRVAzureVM
     {
         Write-Verbose  'Subscription has been selected successfully.'
     }
-  
+
     ##### Patterns
     <#     $RSVPrefix = $Prefix_Main + '-' + $Prefix_RSV + '-'
     $RSV_BPPrefix = $Prefix_Main + '-' + $Prefix_RSV_BP + '-' #>
@@ -817,7 +818,7 @@ Function New-MRVAzureVM
 
     #$AzureServersOU = 'OU=' + $ResourceGroupName + ',' + $AzureServersBaseOU #need to work out how to connect to Domain Controller to create OU
     $AzureServersOU = $AzureServersBaseOU
-    $JSONUrlBase = 'https://' + $JsonStorageAccountName + '.blob.core.windows.net/'
+
     $JsonSourceTemlates = $PathDelimiter + 'Resources' + $PathDelimiter + 'Templates' + $PathDelimiter
     $RegsPath = $PathDelimiter + 'Resources' + $PathDelimiter + 'Registry' + $PathDelimiter
     $CustomScriptPath = $PathDelimiter + 'Resources' + $PathDelimiter + 'CustomScript' + $PathDelimiter
@@ -843,6 +844,39 @@ Function New-MRVAzureVM
     $SourceVMFQDN = $SourceVM + '.' + $DomainDNS
 
     Write-Host 'Running Pre-Checks' -BackgroundColor DarkCyan
+
+    If (($WorkSpaceId -eq 'notdefined') -and ($WorkSpaceName -eq 'notdefined') -and (!$SkipExtensions))
+    {
+        Write-Error "OMS Can't be configured with current Parameters."
+        Write-Error "Please use WorkSpaceId with WorkSpaceKey or WorkSpaceName only"
+        return $false
+    }
+    If ($WorkSpaceId -ne 'notdefined')
+    {
+        If ($WorkSpaceName -ne 'notdefined')
+        {
+            Write-Error "You can't use both WorkSpaceName and WorkSpaceId parameters."
+            Write-Error "Please use WorkSpaceId with WorkSpaceKey or WorkSpaceName only"
+            return $false
+        }
+        If ($WorkSpaceKey -eq 'notdefined')
+        {
+            Write-Error "You can't use WorkSpaceId without WorkSpaceKey parameters."
+            Write-Error "Please use WorkSpaceId with WorkSpaceKey or WorkSpaceName only"
+            return $false
+        }
+        $OMSbyId = $true
+    }
+    If ($WorkSpaceName -ne 'notdefined')
+    {
+        If ($WorkSpaceKey -ne 'notdefined')
+        {
+            Write-Error "You can't use both WorkSpaceKey and WorkSpaceId parameters. WorkSpaceKey will be ignored."
+            Write-Error "Please use WorkSpaceId with WorkSpaceKey or WorkSpaceName only"
+        }
+        Write-Verbose "We will try to add OMS Workspace by name."
+        $OMSbyId = $false
+    }
     if ($SourceVM -ne '')
     {
         Write-Host 'Performing SourceVM name check...'
@@ -915,6 +949,7 @@ Function New-MRVAzureVM
         Write-Error "Looks like you have duplicates in IP addresses"
         return $false
     }
+    $VMIPaddress = $VMIPaddresses[0]
     Write-Verbose "[$VMIPaddress] will be used as main IP address."
     if ($Override)
     {
@@ -995,77 +1030,23 @@ Function New-MRVAzureVM
         }
         $SubNetNames += $Subnetobj.Name
         $counter += 1
-    }   
+    }
     $LocationCode = (Get-MRVLocationCode $location).LocationCode
-    If ($StorageDiagAccountName -eq 'notdefined')
+    $DiagStorageAccount = Get-MRVAzureModuleStorageAccount -StorageAccountName $DiagStorageAccountName -AccountType DIAG -Location $location -SubscriptionName $SubscriptionName -Prefix_Main $Prefix_Main -Prefix_RG $Prefix_RG -Verbose
+    If (!$DiagStorageAccount.Result)
     {
-        Write-verbose "Trying to find Diagnostics Storage account in location [$location]"
-        $StorageDiagAccount = Get-AzureRmStorageAccount  | 
-            Where-Object -FilterScript {
-            $_.Tags.Keys -contains $DiagTagName} | 
-            Where-Object -FilterScript {
-            ($_.Tags.GetEnumerator() | Where-Object {$_.Key -like $DiagTagName}).Value -like $DiagTagValue } |
-            Where-Object -FilterScript {
-            $_.PrimaryLocation -like $location }
+        Write-Error "Failed to retrieve Diagnostic Storage account."
+        $DiagStorageAccount.Error
     }
-    else
-    {
-        $StorageDiagAccountName = $StorageDiagAccountName.ToLower()
-        $StorageDiagAccount = Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageDiagAccountName
-        If ($StorageDiagAccount -eq $null)
-        {
-            Write-Error "Can't find Diagnostics Storage account with the name [$StorageDiagAccountName]"
-            Write-Error "You can either create it before script execurtion or do not specify this parameter. Script will find account or create a new one."
-        }
-        $StorageDiagResourceGroup = $StorageDiagAccount.ResourceGroupName
-    }
-    If ($StorageDiagAccount.Count -gt 1)
-    {
-        Write-Host "It has been found [$($StorageDiagAccount.count)] storage accounts with Diagnostic Tags" -ForegroundColor Green
-        $StorageDiagAccount = $StorageDiagAccount[0]
-        Write-Host "Selecting the first one with the name [$($StorageDiagAccount.StorageAccountName)]"      
-    }
-    elseif ($StorageDiagAccount.Count -eq 0)
-    {
-        Write-Host "There is no Diagnostic storage accouns found" -ForegroundColor Yellow
-        $DiagAccountID = 1
-        $StorageDiagAccountName = $($Prefix_Main + 'lrs' + $LocationCode + 'diag0' + $DiagAccountID).ToLower()
-        While ((Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageDiagAccountName) -and $DiagAccountID -lt 10)
-        {
-            Write-Verbose "Storage account with name [$StorageDiagAccountName] alreade exist."
-            $DiagAccountID ++
-            $StorageDiagAccountName = $($Prefix_Main + 'stlrs' + $LocationCode + 'diag0' + $DiagAccountID).ToLower()
-        }
-        If ($DiagAccountID -eq 10)
-        {
-            Write-Error "It is more than 10 accounts has been found that meet diagnostics name but don't have tags assosiated. This looks wrong!"
-            return $false
-        }
-        $DiagRGName = $($Prefix_Main + '-' + $Prefix_RG + '-' + "DIAG-" + $LocationCode).ToUpper()
-        If (! (Get-AzureRmResourceGroup -Name $DiagRGName -ErrorAction SilentlyContinue))
-        {
-            Write-verbose "Going to create Resource Group for Diagnostic Storage account with the name [$DiagRGName]"
-            New-AzureRmResourceGroup $DiagRGName -Location $location
-        }
-        else 
-        {
-            Write-verbose "Resource Group for Diagnostic Storage account with the name [$DiagRGName] already exist"    
-        }
-        Write-verbose "Trying to create  Diagnostic Storage account with the name [$StorageDiagAccountName]"
-        $StorageDiagAccount = New-AzureRmStorageAccount -Name $StorageDiagAccountName -ResourceGroupName $DiagRGName -Location $location -SkuName Standard_LRS
-        Start-MRVWait -AprxDur 10 -Wait_Activity  "Waiting for ARM sync"
-        Write-verbose "Setting tags on  Diagnostic Storage account with the name [$StorageDiagAccountName]"
-        Update-MRVAzureTag -ResourceName $StorageDiagAccountName -ResourceGroupName $DiagRGName -SubscriptionName $SubscriptionName -TagsTable $DiagTags -EnforceTag
-    }
-    $StorageDiagResourceGroup = $StorageDiagAccount.ResourceGroupName
-    $StorageDiagAccountName = $StorageDiagAccount.StorageAccountName
+    $DiagStorageResourceGroup = $DiagStorageAccount.StorageResourceGroup
+    $DiagStorageAccountName = $DiagStorageAccount.StorageAccountName
     Write-Host  'Virtual Macine will be deployed with the following parameters:' -ForegroundColor DarkGreen
     Write-Host  "VNetResourceGroup: [$VNetResourceGroup]"
     Write-Host  "VNetName: [$VNetName]"
     Write-Host  "Location: [$location]"
     Write-Host  "SubNetNames: [$SubNetNames]"
     Write-Host  "FaultDomainCount [$FaultDomainCount] UpdateDomainCount [$UpdateDomainCount]"
-    Write-Host  "StorageDiagAccountName: $StorageDiagAccountName"
+    Write-Host  "StorageDiagAccountName: $DiagStorageAccountName"
     If ($imagePublisher -ne 'MicrosoftWindowsServer')
     {
         Write-Verbose  'Custom image has been specified. Checking if it exist....'
@@ -1137,21 +1118,16 @@ Function New-MRVAzureVM
         return $false
     }
     Write-Verbose  'Populating the StorageAccountName to use...'
-    $StorageAccountName = $($Prefix_Main + ($StorageAccountType.Substring(0, 2)).ToLower() + ($StorageAccountType.Substring($StorageAccountType.IndexOf('_') + 1, $StorageAccountType.Length - $StorageAccountType.IndexOf('_') - 1)).ToLower() + $LocationCode.ToLower() + ($ResourceGroupName.Substring($ResourceGroupName.IndexOf('-'), $ResourceGroupName.Length - $ResourceGroupName.IndexOf('-')) -replace '-', '').ToLower() + $StorageAccountID).ToLower()
+    $CutIndex = 2 + $ResourceGroupName.IndexOf('-') + ($ResourceGroupName.Substring($ResourceGroupName.IndexOf('-') + 1)).IndexOf('-')
+    $StorageAccountName = $($Prefix_Main + ($StorageAccountType.Substring(0, 2)).ToLower() + ($StorageAccountType.Substring($StorageAccountType.IndexOf('_') + 1, $StorageAccountType.Length - $StorageAccountType.IndexOf('_') - 1)).ToLower() + $LocationCode.ToLower() + ($ResourceGroupName.Substring($CutIndex, $ResourceGroupName.Length - $CutIndex) -replace '-', '').ToLower() + $StorageAccountID).ToLower()
     If ($StorageAccountName.Length -gt 23)
     {
         Write-Host "Storage account name [$StorageAccountName] is to long. Will be truncated to [$($StorageAccountName.Substring(0,23))]" -ForegroundColor Yellow
         $StorageAccountName = $StorageAccountName.Substring(0, 23)
     }
-    $StorageDiagAccountName = $StorageDiagAccountName.ToLower()
-    <# $StorageDiagAccount = Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageDiagAccountName
-    If ($StorageDiagAccount -eq $null)
-    {
-        Write-Error "Can't find Diagnostics Storage account with the name [$StorageDiagAccountName]"
-    }
-    $StorageDiagResourceGroup = $StorageDiagAccount.ResourceGroupName #>
+
     Write-Host  "StorageAccountName: $StorageAccountName"
-    Write-Host  "StorageDiagAccountName: $StorageDiagAccountName"
+    Write-Host  "StorageDiagAccountName: $DiagStorageAccountName"
     Write-Host  'Populating the AvailabilitySetName to use...' -ForegroundColor DarkGreen
     if ($AvailabilitySetID -eq "00")
     {
@@ -1199,6 +1175,12 @@ Function New-MRVAzureVM
         Write-Host  "Resource Group ($ResourceGroupName) has been found!"
     }
     $DeploymentName = $timestamp + '-' + $ResourceGroupName + '-Dep-' + $VMname
+
+    $JSONStorageAccount = Get-MRVAzureModuleStorageAccount -StorageAccountName $JsonStorageAccountName -AccountType JSON -Location $location -SubscriptionName $SubscriptionName -Prefix_Main $Prefix_Main -Prefix_RG $Prefix_RG -Verbose
+    $JsonStorageAccountKey = $JSONStorageAccount.StorageAccountKey
+    $JsonStorageAccountName = $JSONStorageAccount.StorageAccountName
+    $JSONUrlBase = 'https://' + $JsonStorageAccountName + '.blob.core.windows.net/'
+
     Write-Verbose  "Getting storage context for account [$JsonStorageAccountName] with provided key....."
     $containername = $DeploymentName.ToLower()
     if ($containername.Length -gt 63)
@@ -1262,7 +1244,7 @@ Function New-MRVAzureVM
     }
     catch
     {
-        Write-Error  "Can't load the main template! Please check the path [$InputTemplate]"
+        Write-Error  "Can't load the main template! Please check the path [$InputTemplatePath]"
         return $false
     }
     Write-Host  'Main Template has been loaded sucessfully!' -ForegroundColor DarkGreen
@@ -1276,7 +1258,7 @@ Function New-MRVAzureVM
     }
     catch
     {
-        Write-Error  "Can't load the main Parameters template! Please check the path [$InputTemplate]"
+        Write-Error  "Can't load the main Parameters template! Please check the path [$InputParametersPath]"
         return $false
     }
     $InputPostTasksPath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $CustomScriptPath + $CustomScript
@@ -1288,7 +1270,7 @@ Function New-MRVAzureVM
     Write-Host  "Loading After Deployment Script file [$InputPostTasksPath]"
     try
     {
-        $InputPostTasks += [system.io.file]::ReadAllText($InputPostTasksPath) 
+        $InputPostTasks += [system.io.file]::ReadAllText($InputPostTasksPath)
     }
     catch
     {
@@ -1497,7 +1479,20 @@ Function New-MRVAzureVM
         Write-Host  "AzureDiagnostics  url is $($JSONUrlBase + $containername + '/'+$JSONAzureDiagnosticsTemplateFile+$token)"
         Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONAzureDiagnosticsTemplateFile) -Destination $DeploymentTempPath
         Write-Host  "AzureOMS url is $($JSONUrlBase + $containername + '/'+$JSONOMSTemplateFile+$token)"
-        Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONOMSTemplateFile) -Destination $DeploymentTempPath
+        $OMSTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONOMSTemplateFile
+        if ($OMSbyId)
+        {
+            Copy-Item -Path $OMSTemplatePath -Destination $DeploymentTempPath
+        }
+        else
+        {
+            Write-Verbose  "Loading OMS Template from file [$OMSTemplatePath]"
+            $OMSJsonTemplate = [system.io.file]::ReadAllText($OMSTemplatePath) -join "`n" | ConvertFrom-Json
+            $OMSJsonTemplate.resources[0].properties.settings.workspaceId = "[reference(resourceId('Microsoft.OperationalInsights/workspaces/', parameters('workspaceName')), '2015-03-20').customerId]"
+            $OMSJsonTemplate.resources[0].properties.protectedSettings.workspaceKey = "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces/', parameters('workspaceName')), '2015-03-20').primarySharedKey]"
+            $json_content = $OMSJsonTemplate | ConvertTo-Json -Depth 50
+            [system.io.file]::WriteAllText($($DeploymentTempPath + $JSONOMSTemplateFile), $json_content)
+        }
     }
     Write-Verbose  "Saving Main Template to file [$OutFileName] as [$($DeploymentTempPath + $OutFileName)] to be uploaded for provisioning"
     try
@@ -1532,11 +1527,12 @@ Function New-MRVAzureVM
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name adminUserName -Value @{Value = $VMAdminUsername}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name adminPassword -Value @{Value = $VMAdminPassword}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name storageAccountType -Value @{Value = $StorageAccountType}
-    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageDiagAccountName -Value @{Value = $StorageDiagAccountName}
-    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageDiagResourceGroup -Value @{Value = $StorageDiagResourceGroup}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageDiagAccountName -Value @{Value = $DiagStorageAccountName}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageDiagResourceGroup -Value @{Value = $DiagStorageResourceGroup}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name MicrosoftMonitoringAgentTemplate -Value @{Value = $JSONOMSTemplateFile}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name workspaceId -Value @{Value = $workspaceId}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name workspaceKey -Value @{Value = $workspaceKey}
+    $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name workspaceName -Value @{Value = $workspaceName}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name imagePublisher -Value @{Value = $imagePublisher}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name imageOffer -Value @{Value = $imageOffer}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name DatadiskSizeGB -Value @{Value = $DatadiskSizeGB}
@@ -1557,7 +1553,7 @@ Function New-MRVAzureVM
         return $false
     }
     $json_content = $null
-    
+
     Write-Verbose  "Saving After Deployment script to file [$CustomScript] as [$($DeploymentTempPath + $CustomScript)] to be uploaded for provisioning"
     try
     {
@@ -1615,7 +1611,7 @@ Function New-MRVAzureVM
             -templateBaseUrl $JsonTemplatesUrl -BGInfoTemplate $JSONBGinfoTemplateFile -AzureDiagnosticsTemplate $JSONAzureDiagnosticsTemplateFile -Token $token `
             -vmSize $VMSize -VMIPaddresses $VMIPaddresses -VNetName $VNetName -SubNetNames $SubNetNames `
             -IPConfigNames $IPConfigNames_array -IfaceNames $IfaceNames_array -IfaceCount $IfaceCount -VMDiskName $VMDiskName -availabilitySetName $availabilitySetName `
-            -VNetResourceGroup $VNetResourceGroup -adminUserName $VMAdminUsername -adminPassword $VMAdminPassword -storageAccountType $StorageAccountType -StorageDiagAccountName $StorageDiagAccountName `
+            -VNetResourceGroup $VNetResourceGroup -adminUserName $VMAdminUsername -adminPassword $VMAdminPassword -storageAccountType $StorageAccountType -StorageDiagAccountName $DiagStorageAccountName `
             -MicrosoftMonitoringAgentTemplate $JSONOMSTemplateFile -workspaceId $workspaceId  -workspaceKey $workspaceKey -imagePublisher $imagePublisher -imageOffer $imageOffer `
             -DatadiskSizeGB $DatadiskSizeGB -FaultDomainCount $FaultDomainCount -UpdateDomainCount $UpdateDomainCount -EnableAcceleratedNetworking $EnableAcceleratedNetworking.IsPresent
     #>
@@ -1687,11 +1683,11 @@ Function New-MRVAzureVM
             {
                 Write-Host "Provisioning After Deployment Tasks Completed Sucessfully" -ForegroundColor Green
             }
-        }   
+        }
         Write-Verbose "Updating VM Tags"
         $TagsTable.Add('Description', $Description)
         $TagsTable.Add('ChangeControl', $ChangeControl)
-        Update-MRVAzureTag -ResourceName $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName     
+        Update-MRVAzureTag -ResourceName $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName
         $time_end = get-date
         Write-Host  "Deployment finished at [$time_end]" -BackgroundColor DarkCyan
         Write-Host  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"

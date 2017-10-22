@@ -28,6 +28,12 @@
       },
       "type": "string"
     },
+    "workspaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics workspace name"
+      }
+    },
     "location": {
       "type": "string",
       "defaultValue": "northeurope",

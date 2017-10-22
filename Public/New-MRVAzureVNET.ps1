@@ -51,7 +51,7 @@ Function New-MRVAzureVNET
         [Parameter(ParameterSetName = 'HashTable', Mandatory = $true)]
         [String]
         $SubscriptionName = $(throw "Please Provide the name for Subscription!"),
-        
+
         [Parameter(ParameterSetName = 'Basic', Mandatory = $true)]
         [Parameter(ParameterSetName = 'HashTable', Mandatory = $true)]
         [ValidateSet('eastasia',
@@ -103,18 +103,18 @@ Function New-MRVAzureVNET
         [Parameter(ParameterSetName = 'Basic', Mandatory = $false)]
         [Parameter(ParameterSetName = 'HashTable', Mandatory = $false)]
         [string] $Prefix_RG = 'RG',
-        
+
         #Storgage account name, where the JSON Templates stored during provisioning
         [Parameter(ParameterSetName = 'Basic', Mandatory = $false)]
         [Parameter(ParameterSetName = 'HashTable', Mandatory = $false)]
         [String]
-        $JsonStorageAccountName = 'mrvstlrsuksrgmgmt00101',
+        $JsonStorageAccountName = 'notdefined',
 
-        #Storgage account key, where the JSON Templates stored during provisioning
+        <#        #Storgage account key, where the JSON Templates stored during provisioning
         [Parameter(ParameterSetName = 'Basic', Mandatory = $false)]
         [Parameter(ParameterSetName = 'HashTable', Mandatory = $false)]
         [String]
-        $JsonStorageAccountKey = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        $JsonStorageAccountKey = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx', #>
 
         [Parameter(ParameterSetName = 'Basic', Mandatory = $false)]
         [Parameter(ParameterSetName = 'HashTable', Mandatory = $false)]
@@ -188,6 +188,9 @@ Function New-MRVAzureVNET
     {
         Write-Verbose  'Subscription has been selected successfully.'
     }
+    $JSONStorageAccount = Get-MRVAzureModuleStorageAccount -StorageAccountName $JsonStorageAccountName -AccountType JSON -Location $location -SubscriptionName $SubscriptionName -Prefix_Main $Prefix_Main -Prefix_RG $Prefix_RG -Verbose
+    $JsonStorageAccountKey = $JSONStorageAccount.StorageAccountKey
+    $JsonStorageAccountName = $JSONStorageAccount.StorageAccountName
     $JSONUrlBase = 'https://' + $JsonStorageAccountName + '.blob.core.windows.net/'
     $JsonSourceTemlates = $PathDelimiter + 'Resources' + $PathDelimiter + 'Templates' + $PathDelimiter
     $JSONBaseTemplateFile = 'Azure_VNET.json'
@@ -304,7 +307,7 @@ Function New-MRVAzureVNET
     }
     $InputTemplate
     $InputParameters
-      
+
     $InputTemplateVariables = $InputTemplate.variables
     $InputTemplateSubnets = $InputTemplate.resources.properties.subnets
 
@@ -313,8 +316,8 @@ Function New-MRVAzureVNET
     foreach ($SubnetName in $SubnetNames)
     {
         $InputTemplateVariables | Add-Member -MemberType NoteProperty -Name $('Subnet' + $Number + 'Name') -Value $SubnetName
-        $InputTemplateVariables | Add-Member -MemberType NoteProperty -Name $('Subnet' + $Number + 'Prefix') -Value $SubnetCIDRs[$Number] 
-       
+        $InputTemplateVariables | Add-Member -MemberType NoteProperty -Name $('Subnet' + $Number + 'Prefix') -Value $SubnetCIDRs[$Number]
+
         $SubNet = [pscustomobject][ordered]@{
             name       = "[variables('" + $('Subnet' + $Number + 'Name') + "')]"
             properties	= [pscustomobject][ordered]@{
@@ -369,6 +372,6 @@ Function New-MRVAzureVNET
     }
     Write-Host  'Provisioning NET.....' -ForegroundColor DarkBlue -BackgroundColor White
     $DeploymentSatus = New-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Verbose -Name $DeploymentName -TemplateUri $JsonUrlMain -TemplateParameterUri $JSONParametersUrl
-    
+
 
 }
