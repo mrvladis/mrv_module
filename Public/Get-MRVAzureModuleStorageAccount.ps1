@@ -26,11 +26,11 @@ Script that result with the name of the existing storage accounts and their secr
     Error               $error
 
 Syntax: Function has the following parameters:
-.Parameter 
+.Parameter
 Azure region that is pre-defined within the function.
 
 .Example
- 	
+
 
 #>
 
@@ -109,9 +109,9 @@ Function Get-MRVAzureModuleStorageAccount
     If ($StorageAccountName -eq 'notdefined')
     {
         Write-verbose "Trying to find [$AccountType] Storage account in location [$location]"
-        $StorageAccount = Get-AzureRmStorageAccount  | 
+        $StorageAccount = Get-AzureRmStorageAccount  |
             Where-Object -FilterScript {
-            $_.Tags.Keys -contains $TagName} | 
+            $_.Tags.Keys -contains $TagName} |
             Where-Object -FilterScript {
             ($_.Tags.GetEnumerator() | Where-Object {$_.Key -like $TagName}).Value -like $TagValue } |
             Where-Object -FilterScript {
@@ -161,13 +161,13 @@ Function Get-MRVAzureModuleStorageAccount
         }
         Write-verbose "Trying to create  [$AccountType] Storage account with the name [$StorageAccountName]"
         $StorageAccount = New-AzureRmStorageAccount -Name $StorageAccountName -ResourceGroupName $RGName -Location $location -SkuName Standard_LRS
-        Start-MRVWait -AprxDur 5 -Wait_Activity  "Waiting for ARM sync"
+        Start-MRVWait -AprxDur 15 -Wait_Activity  "Waiting for ARM sync"
         Write-verbose "Setting tags on  [$AccountType] Storage account with the name [$StorageAccountName]"
         Update-MRVAzureTag -ResourceName $StorageAccountName -ResourceGroupName $RGName -SubscriptionName $SubscriptionName -TagsTable $Tags -EnforceTag
     }
     $StorageResourceGroup = $StorageAccount.ResourceGroupName
-    $StorageAccountName = $StorageAccount.StorageAccountName  
-    $StorageAccountKey = ((Get-AzureRmStorageAccountKey -Name $StorageAccount.StorageAccountName -ResourceGroupName $StorageAccount.ResourceGroupName).GetEnumerator() | Where-Object {$_.KeyName -like 'key1'}).value 
+    $StorageAccountName = $StorageAccount.StorageAccountName
+    $StorageAccountKey = ((Get-AzureRmStorageAccountKey -Name $StorageAccount.StorageAccountName -ResourceGroupName $StorageAccount.ResourceGroupName).GetEnumerator() | Where-Object {$_.KeyName -like 'key1'}).value
     $result = @{Result = $Success; Error = $Error; StorageAccountName = $StorageAccountName; StorageResourceGroup = $StorageResourceGroup; StorageAccountKey = $StorageAccountKey}
     return $result
 }
