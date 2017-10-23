@@ -161,7 +161,7 @@ Function Get-MRVAzureModuleStorageAccount
         }
         Write-verbose "Trying to create  [$AccountType] Storage account with the name [$StorageAccountName]"
         $StorageAccount = New-AzureRmStorageAccount -Name $StorageAccountName -ResourceGroupName $RGName -Location $location -SkuName Standard_LRS
-        Start-MRVWait -AprxDur 15 -Wait_Activity  "Waiting for ARM sync"
+        Start-MRVWait -AprxDur 30 -Wait_Activity  "Waiting for ARM sync"
         Write-verbose "Setting tags on  [$AccountType] Storage account with the name [$StorageAccountName]"
         Update-MRVAzureTag -ResourceName $StorageAccountName -ResourceGroupName $RGName -SubscriptionName $SubscriptionName -TagsTable $Tags -EnforceTag
     }

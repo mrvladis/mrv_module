@@ -178,7 +178,6 @@ Function New-MRVAzureVNET
 
     Write-Host  "Provisional operation has been started with timestamp $timestamp" -BackgroundColor DarkCyan
     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName -ErrorAction SilentlyContinue
-    $Subscription
     If (!$Subscription.Result)
     {
         Write-Error  'Make sure that you have access and logged in to Azure'

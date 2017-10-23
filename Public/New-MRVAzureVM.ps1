@@ -1051,6 +1051,14 @@ Function New-MRVAzureVM
             Write-Error  "Can't find the VNET and SubNET for the IP provided! MAke sure that the IP adress is correct and SubNET has been created!"
             return $false
         }
+        If (($VirtualNetworkobj.count -gt 1) -or ($Subnetobj.Count -gt 1))
+        {
+            Write-Host  "VNetName: [$VNetName]"
+            Write-Host  "SubNetNames: [$SubNetNames]"
+            Write-Error  "Multiple VNETs and / or SubNETs for the IP found! Can't understand where we going... Sorry... "
+            Write-Error  "Multiple VNETs and / or SubNETs with the same CIDRs within the same subscription not supported."
+            return $false
+        }
         If ($counter -eq 1)
         {
             $VNetName = $VirtualNetworkobj.name
