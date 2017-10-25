@@ -4,28 +4,17 @@ Function Set-MRVVMPowerState
         [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()]
         [string]
         $vmId,
-		
+
         [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()]
-        [ValidateSet("Started", "StoppedDeallocated" )] 
+        [ValidateSet("Started", "StoppedDeallocated" )]
         [string]
         $DesiredState,
-		
-        [Parameter(Mandatory = $true)] [ValidateNotNullOrEmpty()]
-        [string] 
-        $SubscriptionName = $(throw "Please Provide the Subscription name!"),
-		
-        [Parameter (Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [Management.Automation.PSCredential]  
-        $AutomationCredentials = $(throw "Please Supply Credentials!"), 
-		
+
         [Parameter (Mandatory = $false)]
         [switch]
         $Simulate
     )
     $EventAppName = "PowerShellAutomation"
-    Write-Verbose "Loging in to $SubscriptionName"
-    Select-MRVSubscription -SubscriptionName $SubscriptionName -Credential $AutomationCredentials -ErrorAction Stop
     # Get VM with current status
     Write-Verbose "Getting VM resource with ID $vmId"
     $VirtualMachine = Get-AzureRmResource -ResourceId $vmId
@@ -36,13 +25,13 @@ Function Set-MRVVMPowerState
     }
     catch
     {
-        Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8030 -EntryType Error -Message "Failed to get VM with Name [$($VirtualMachine.Name)] from the RG [$($VirtualMachine.ResourceGroupName)]" -Category 1 
-        Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8031 -EntryType Error -Message $Error -Category 1 
+        Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8030 -EntryType Error -Message "Failed to get VM with Name [$($VirtualMachine.Name)] from the RG [$($VirtualMachine.ResourceGroupName)]" -Category 1
+        Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8031 -EntryType Error -Message $Error -Category 1
         return
     }
-   
+
     #return
-    $currentStatus = $VM.Statuses | where Code -like "PowerState*" 
+    $currentStatus = $VM.Statuses | where Code -like "PowerState*"
     $currentStatus = $currentStatus.Code -replace "PowerState/", ""
 
     # If should be started and isn't, start VM
@@ -61,8 +50,8 @@ Function Set-MRVVMPowerState
             }
             catch
             {
-                Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8040 -EntryType Error -Message "[$($VirtualMachine.Name)]: VM Failed to start" -Category 1 
-                Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8041 -EntryType Error -Message $Error -Category 1 
+                Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8040 -EntryType Error -Message "[$($VirtualMachine.Name)]: VM Failed to start" -Category 1
+                Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8041 -EntryType Error -Message $Error -Category 1
                 return
             }
         }
@@ -83,8 +72,8 @@ Function Set-MRVVMPowerState
             }
             catch
             {
-                Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8050 -EntryType Error -Message "[$($VirtualMachine.Name)]: VM Failed to Stop" -Category 1 
-                Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8051 -EntryType Error -Message $Error -Category 1 
+                Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8050 -EntryType Error -Message "[$($VirtualMachine.Name)]: VM Failed to Stop" -Category 1
+                Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8051 -EntryType Error -Message $Error -Category 1
                 return
             }
         }
@@ -96,7 +85,7 @@ Function Set-MRVVMPowerState
         Write-Verbose "[$($VirtualMachine.Name)]: Current power state [$currentStatus] is correct."
     }
     [string]$ResultText = $result
-	
-    Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8100 -EntryType Information -Message "Assesment of VM [$($VirtualMachine.Name)] Finished Successully." -Category 1 
-    Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8099 -EntryType Information -Message $ResultText -Category 1 
-} 
+
+    Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8100 -EntryType Information -Message "Assesment of VM [$($VirtualMachine.Name)] Finished Successully." -Category 1
+    Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8099 -EntryType Information -Message $ResultText -Category 1
+}

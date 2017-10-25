@@ -5,11 +5,6 @@ Function Start-MRVVMPowerAssesment
         [string]
         $SubscriptionName = $(throw "Please Provide the Subscription name!"),
 
-        [Parameter (Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]
-        [Management.Automation.PSCredential]
-        $AutomationCredentials = $(throw "Please Supply Credentials!"),
-
         [Parameter (Mandatory = $false)]
         [switch]
         $Simulate
@@ -19,7 +14,7 @@ Function Start-MRVVMPowerAssesment
     $oToTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById("GMT Standard Time")
     $currentTime = [System.TimeZoneInfo]::ConvertTime($UTCTime, $oToTimeZone)
     $Message = ""
-    Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8001 -EntrySubscriptionName Information -Message "Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1 
+    Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8001 -EntrySubscriptionName Information -Message "Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
     Write-Verbose"Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
     if ($Simulate)
     {
@@ -32,7 +27,7 @@ Function Start-MRVVMPowerAssesment
     }
     Write-Verbose"Current time [$($currentTime.ToString("dddd, yyyy MMM dd HH:mm:ss"))] will be checked against schedules"
     Write-Verbose"Logging in to $SubscriptionName"
-    Select-MRVSubscription -SubscriptionName $SubscriptionName -Credential $AutomationCredentials -ErrorAction Stop  
+    Select-MRVSubscription -SubscriptionName $SubscriptionName
 
     $Days = @("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
     Write-Verbose"Getting VM"
@@ -171,10 +166,12 @@ Function Start-MRVVMPowerAssesment
         }
         Start-Job Name $($VM.Name + '_' + $time) -ArgumentList $VM, $DesiredState, $Simulate, $AutomationCredentials, $SubscriptionName `
             Scriptblock {
-            Param($VM, $DesiredState, $Simulate, $AutomationCredentials, $SubscriptionName)
+            Param($VM, $DesiredState, $Simulate, $Connection, $SubscriptionName)
             Write-Verbose"VM ID [$($VM.ResourceId)]"
-            Import-Module MRVFunctions
-            Set-MRVVMPowerState -vmId $VM.ResourceId -DesiredState $DesiredState -Simulate:$Simulate -AutomationCredentials $AutomationCredentials -SubscriptionName $SubscriptionName
+            Import-Module mrv_module
+            Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
+            Select-MRVSubscription -SubscriptionName $SubscriptionName
+            Set-MRVVMPowerState -vmId $VM.ResourceId -DesiredState $DesiredState -Simulate:$Simulate
         }
     }
     $MaxWaitSec = 900
@@ -187,7 +184,7 @@ Function Start-MRVVMPowerAssesment
         if ($WaitingSec % 60 -eq 0)
         {
             Write-Host "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still running."
-            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Information -Message "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1 
+            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Information -Message "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
         }
         If ($WaitingSec -le $MaxWaitSec)
         {
@@ -196,7 +193,7 @@ Function Start-MRVVMPowerAssesment
         else
         {
             Write-Host "MaxWaitSec [$MaxWaitSec] reached. Exiting...."
-            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Error -Message "MaxWaitSec [$MaxWaitSec] reached. Exiting..... Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1 
+            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Error -Message "MaxWaitSec [$MaxWaitSec] reached. Exiting..... Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
             $JobsRCount = 0
         }
     }
@@ -204,15 +201,15 @@ Function Start-MRVVMPowerAssesment
     {
         foreach ($FailedJob in (Get-Job -State Failed))
         {
-            [String]$FailedJobContent = $FailedJob | Receive-Job			
+            [String]$FailedJobContent = $FailedJob | Receive-Job
             $Message = "Job [$($FailedJob.name)] has failed. Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
-            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8060 -EntrySubscriptionName Error -Message $Message -Category 1 
+            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8060 -EntrySubscriptionName Error -Message $Message -Category 1
             Write-Verbose $Message
-            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8061 -EntrySubscriptionName Error -Message $FailedJobContent -Category 1 
+            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8061 -EntrySubscriptionName Error -Message $FailedJobContent -Category 1
             Write-Verbose $FailedJobContent
         }
     }
-    $Message = "Runbook started at [$currentTime] for Subscription [$SubscriptionName] finished. (Duration: $(("{0:hh\:mm\:ss}" -f ((Get-Date).ToUniversalTime() - $UTCTime))))"	
+    $Message = "Runbook started at [$currentTime] for Subscription [$SubscriptionName] finished. (Duration: $(("{0:hh\:mm\:ss}" -f ((Get-Date).ToUniversalTime() - $UTCTime))))"
     Write-Verbose $Message
     Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8002 -EntrySubscriptionName Information -Message $Message
-} 
+}
