@@ -14,12 +14,12 @@ Function Start-MRVVMPowerAssesment
     $oToTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById("GMT Standard Time")
     $currentTime = [System.TimeZoneInfo]::ConvertTime($UTCTime, $oToTimeZone)
     $Message = ""
-    Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8001 -EntrySubscriptionName Information -Message "Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
+    #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8001 -EntrySubscriptionName Information -Message "Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
     Write-Verbose "Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
     if ($Simulate)
     {
         Write-Verbose "*** Running in SIMULATE mode. No power actions will be taken. ***"
-        Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 80010 -EntrySubscriptionName Warning -Message "*** Running in SIMULATE mode. No power actions will be taken. ***" -Category 1
+        #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 80010 -EntrySubscriptionName Warning -Message "*** Running in SIMULATE mode. No power actions will be taken. ***" -Category 1
     }
     else
     {
@@ -31,22 +31,27 @@ Function Start-MRVVMPowerAssesment
 
     $Days = @("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
     Write-Verbose "Getting VM"
-    $time = Get-Date
+    [string]$time = Get-Date -Format 'yyyy-MM-dd-HH-mm'
     $DayToday = (get-date).DayOfWeek
     $WeekOfMonth = [math]::Floor(((Get-Date).Day - 1) / 7 + 1)
     $Patching_Schedule = "23:00->03:00"
     $PatchingTagName = "Patching_Schedule"
     Write-Verbose "Today is $DayToday and week number [$WeekOfMonth]"
-    Write-Verbose "Processing VMs. We have $($VMs.Count) to proceed"
+    
     # Get a list of all virtual machines in subscription
-    $VMList = @(Get-AzureRmResource | where {$_.ResourceSubscriptionName -like "Microsoft.*/virtualMachines"} | sort Name)
-
+    $VMList = Get-AzureRmVM
+    Write-Verbose "Processing VMs. We have $($VMList.Count) to proceed"
     Write-Verbose "Processing [$($VMList.Count)] virtual machines found in subscription"
     ForEach ($VM in $VMList)
     {
+        Write-Verbose "Processing VM [$($VM.name)]"
         $Schedule = $null
-        $tags = $VM.Tags
-        if ($tags -eq $null)
+        $VMtags = $null
+        $VMtags = $VM.Tags
+        #$VMtags
+        #$VMtags.GetEnumerator()
+        #Write-Verbose "Processing After Tag Output"
+        if ($VMtags -eq $null)
         {
             # No direct or inherited tag. Skip this VM.
             Write-Verbose "[$($VM.Name)]: Does not have any tags for start / stop management. Skipping this VM."
@@ -54,7 +59,8 @@ Function Start-MRVVMPowerAssesment
         }
         $ifAlwaysOn = $false
         $ifAlwaysOff = $false
-        if ((($tags.GetEnumerator() | Where-Object {$_.Name -like "AlwaysON"}).Value).tolower() -like "*true")
+        If (($VMtags.GetEnumerator() | Where-Object {$_.Key -like "AlwaysON"}).value -like "*true")
+        #if ((($VMtags.GetEnumerator() | Where-Object {$_.Key -like "AlwaysON"}).Value).tolower() -like "*true")
         {
             $ifAlwaysOn = $true
             Write-Verbose "[$($VM.Name)]: Has AlwaysOn set to TRUE ($ifAlwaysOn)"
@@ -64,7 +70,8 @@ Function Start-MRVVMPowerAssesment
             #$ifAlwaysOn = $false # Already set above
             Write-Verbose "[$($VM.Name)]: Has AlwaysOn set to False ($ifAlwaysOn)"
         }
-        if ((($tags.GetEnumerator() | Where-Object {$_.Name -like "AlwaysOFF"}).Value).tolower() -like "*true")
+        If (($VMtags.GetEnumerator() | Where-Object {$_.Key -like "AlwaysOFF"}).value -like "*true")
+        #if ((($VMtags.GetEnumerator() | Where-Object {$_.Key -like "AlwaysOFF"}).Value).tolower() -like "*true")
         {
             $ifAlwaysOff = $true
             Write-Verbose "[$($VM.Name)]: Has AlwaysOFF set to TRUE ($ifAlwaysOff)"
@@ -72,8 +79,10 @@ Function Start-MRVVMPowerAssesment
         else
         {
             #$ifAlwaysOff = $false # Already set above
-            Write-Verbose "[$($VM.Name)]: Has AlwaysOn set to False ($ifAlwaysOff)"
+            Write-Verbose "[$($VM.Name)]: Has AlwaysOFF set to False ($ifAlwaysOff)"
         }
+        Write-Verbose "After Always Tags" 
+        $VMtags.GetEnumerator()
         If (($ifAlwaysOn) -and ($ifAlwaysOff))
         {
             Write-Verbose "[$($VM.Name)]: Has AlwaysOn and AlwaysOff both set to TRUE. This doesn't make sense. Skipping...."
@@ -84,7 +93,7 @@ Function Start-MRVVMPowerAssesment
         {
             try
             {
-                $Schedule = ($tags.GetEnumerator() | Where-Object {$_.Name -like "Schedule_$DayToday"}).Value
+                $Schedule = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like "Schedule_$DayToday"}).Value
             }
             catch
             {
@@ -100,13 +109,15 @@ Function Start-MRVVMPowerAssesment
             }
             # Parse the ranges in the Tag value. Expects a string of comma-separated time ranges, or a single time range
             $timeRangeList = @($schedule -split "," | ForEach-Object {$_.Trim()})
-            # Check each range against the current time to see if any schedule is matched
+            Write-Verbose "Check each range against the current time to see if any schedule is matched"
             $IsScheduleMatched = $false
             $MatchedSchedule = $null
             foreach ($entry in $timeRangeList)
             {
-                if ((Test-MRVPowerScheduleEntry -TimeRange $entry))
+                Write-Verbose "Processing Entry [$entry]"
+                if (Test-MRVPowerScheduleEntry -TimeRange $entry)
                 {
+                    Write-Verbose "Based on Time Entry [$entry] VM Schedule is matched."
                     $IsScheduleMatched = $true
                     $MatchedSchedule = $entry
                     break
@@ -115,20 +126,22 @@ Function Start-MRVVMPowerAssesment
         }
         elseif ($ifAlwaysOn)
         {
+             Write-Verbose "Based on AlwaysOn [$ifAlwaysOn] VM Schedule is matched."
             $IsScheduleMatched = $true
             $MatchedSchedule = 'AlwaysOn'
 
         }
         elseif ($ifAlwaysOff)
         {
+             Write-Verbose "Based on AlwaysOff [$ifAlwaysOff] VM Schedule do not match."
             $IsScheduleMatched = $false
         }
         # After all checks - we are checking if the VM need to be UP for the maintenance. Even if it is alwaysOFF - it need to be kept up to date.
         Write-Verbose "Checking if the VM need to be UP for the maintenance. Even if it is alwaysOFF - it need to be kept up to date."
-        if ($tags.ContainsKey($PatchingTagName))
+        if ($VMtags.ContainsKey($PatchingTagName))
         {
             Write-Verbose "Patching Tag found. Checking if it is time for patching.."
-            $PatchingGroup = ($tags.GetEnumerator() | Where-Object {$_.Name -like $PatchingTagName}).Value
+            $PatchingGroup = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like $PatchingTagName}).Value
             Write-Verbose "We have got Patching Group [$PatchingGroup]. Is it time for patching?"
             $PatchingWeekNumber = $PatchingGroup.Substring(1, 1)
             $PatchingDay = $PatchingGroup.Substring(3, 3)
@@ -161,17 +174,17 @@ Function Start-MRVVMPowerAssesment
         else
         {
             # Schedule not matched. Shut down VM if not stopped.
-            Write-Verbose "[$($VM.Name)]: Current time falls within of all scheduled shutdown ranges."
+            Write-Verbose "[$($VM.Name)]: Current time falls within scheduled shutdown ranges."
             $DesiredState = "StoppedDeallocated"
         }
-        Start-Job Name $($VM.Name + '_' + $time) -ArgumentList $VM, $DesiredState, $Simulate, $AutomationCredentials, $SubscriptionName `
-            Scriptblock {
+        [string]$jobname = $($VM.name + '_' + $time)
+        Start-Job -Name [string]$jobname  -ArgumentList $VM, $DesiredState, $Simulate, $Connection, $SubscriptionName -Scriptblock {
             Param($VM, $DesiredState, $Simulate, $Connection, $SubscriptionName)
             Write-Verbose "VM ID [$($VM.ResourceId)]"
             Import-Module mrv_module
             Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
             Select-MRVSubscription -SubscriptionName $SubscriptionName
-            Set-MRVVMPowerState -vmId $VM.ResourceId -DesiredState $DesiredState -Simulate:$Simulate
+            Set-MRVVMPowerState -vmId $VM.Id -DesiredState $DesiredState -Simulate:$Simulate
         }
     }
     $MaxWaitSec = 900
@@ -184,7 +197,7 @@ Function Start-MRVVMPowerAssesment
         if ($WaitingSec % 60 -eq 0)
         {
             Write-Host "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still running."
-            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Information -Message "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
+            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Information -Message "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
         }
         If ($WaitingSec -le $MaxWaitSec)
         {
@@ -193,7 +206,7 @@ Function Start-MRVVMPowerAssesment
         else
         {
             Write-Host "MaxWaitSec [$MaxWaitSec] reached. Exiting...."
-            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Error -Message "MaxWaitSec [$MaxWaitSec] reached. Exiting..... Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
+            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Error -Message "MaxWaitSec [$MaxWaitSec] reached. Exiting..... Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
             $JobsRCount = 0
         }
     }
@@ -203,13 +216,14 @@ Function Start-MRVVMPowerAssesment
         {
             [String]$FailedJobContent = $FailedJob | Receive-Job
             $Message = "Job [$($FailedJob.name)] has failed. Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
-            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8060 -EntrySubscriptionName Error -Message $Message -Category 1
+            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8060 -EntrySubscriptionName Error -Message $Message -Category 1
             Write-Verbose $Message
-            Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8061 -EntrySubscriptionName Error -Message $FailedJobContent -Category 1
+            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8061 -EntrySubscriptionName Error -Message $FailedJobContent -Category 1
             Write-Verbose $FailedJobContent
         }
     }
+    Get-Job | Receive-Job
     $Message = "Runbook started at [$currentTime] for Subscription [$SubscriptionName] finished. (Duration: $(("{0:hh\:mm\:ss}" -f ((Get-Date).ToUniversalTime() - $UTCTime))))"
     Write-Verbose $Message
-    Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8002 -EntrySubscriptionName Information -Message $Message
+    #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8002 -EntrySubscriptionName Information -Message $Message -Category 1
 }
