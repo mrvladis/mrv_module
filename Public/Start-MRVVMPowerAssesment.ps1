@@ -177,58 +177,57 @@ Function Start-MRVVMPowerAssesment
         $VMStates += @{VM = $VM; DesiredState = $DesiredState}
     }
 
-
-        Write-Verbose "We have [$($VMStates.Count)] VMstates to process"
-        foreach ($VMState in $VMStates)
-        {
-            [string]$jobname = $($VM.name + '_' + $time)
-            $VM = $VMState.VM
-            $DesiredState = $VMState.DesiredState
-            Start-Job -Name [string]$jobname  -ArgumentList $VM, $DesiredState, $Simulate, $Connection, $SubscriptionName -Scriptblock {
-                Param($VM, $DesiredState, $Simulate, $Connection, $SubscriptionName)
-                Write-Verbose "VM ID [$($VM.Id)]"
-                Import-Module mrv_module
-                Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
-                Select-MRVSubscription -SubscriptionName $SubscriptionName
-                Set-MRVVMPowerState -vmId $VM.Id -DesiredState $DesiredState -Simulate:$Simulate verbose
-            }
+    Write-Verbose "We have [$($VMStates.Count)] VMstates to process"
+    foreach ($VMState in $VMStates)
+    {
+        [string]$jobname = $($VM.name + '_' + $time)
+        $VM = $VMState.VM
+        $DesiredState = $VMState.DesiredState
+        Start-Job -Name [string]$jobname  -ArgumentList $VM, $DesiredState, $Simulate, $Connection, $SubscriptionName -Scriptblock {
+            Param($VM, $DesiredState, $Simulate, $Connection, $SubscriptionName)
+            Write-Verbose "VM ID [$($VM.Id)]"
+            Import-Module mrv_module
+            Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
+            Select-MRVSubscription -SubscriptionName $SubscriptionName
+            Set-MRVVMPowerState -vmId $VM.Id -DesiredState $DesiredState -Simulate:$Simulate -Verbose
         }
-        $MaxWaitSec = 900
-        $WaitingSec = 0
-        $JobsRCount = (Get-Job -State Running).count
-        While ($JobsRCount -gt 0)
+    }
+    $MaxWaitSec = 900
+    $WaitingSec = 0
+    $JobsRCount = (Get-Job -State Running).count
+    While ($JobsRCount -gt 0)
+    {
+        Start-Sleep 1
+        $WaitingSec ++
+        if ($WaitingSec % 60 -eq 0)
         {
-            Start-Sleep 1
-            $WaitingSec ++
-            if ($WaitingSec % 60 -eq 0)
-            {
-                Write-Host "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still running."
-                #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Information -Message "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
-            }
-            If ($WaitingSec -le $MaxWaitSec)
-            {
-                $JobsRCount = (Get-Job -State Running).count
-            }
-            else
-            {
-                Write-Host "MaxWaitSec [$MaxWaitSec] reached. Exiting...."
-                #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Error -Message "MaxWaitSec [$MaxWaitSec] reached. Exiting..... Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
-                $JobsRCount = 0
-            }
+            Write-Host "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still running."
+            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Information -Message "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
         }
-        If ((Get-Job -State Failed).count -ne 0)
+        If ($WaitingSec -le $MaxWaitSec)
         {
-            foreach ($FailedJob in (Get-Job -State Failed))
-            {
-                [String]$FailedJobContent = $FailedJob | Receive-Job
-                $Message = "Job [$($FailedJob.name)] has failed. Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
-                #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8060 -EntrySubscriptionName Error -Message $Message -Category 1
-                Write-Verbose $Message
-                #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8061 -EntrySubscriptionName Error -Message $FailedJobContent -Category 1
-                Write-Verbose $FailedJobContent
-            }
+            $JobsRCount = (Get-Job -State Running).count
         }
-        Get-Job | Receive-Job
+        else
+        {
+            Write-Host "MaxWaitSec [$MaxWaitSec] reached. Exiting...."
+            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Error -Message "MaxWaitSec [$MaxWaitSec] reached. Exiting..... Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
+            $JobsRCount = 0
+        }
+    }
+    If ((Get-Job -State Failed).count -ne 0)
+    {
+        foreach ($FailedJob in (Get-Job -State Failed))
+        {
+            [String]$FailedJobContent = $FailedJob | Receive-Job
+            $Message = "Job [$($FailedJob.name)] has failed. Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
+            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8060 -EntrySubscriptionName Error -Message $Message -Category 1
+            Write-Verbose $Message
+            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8061 -EntrySubscriptionName Error -Message $FailedJobContent -Category 1
+            Write-Verbose $FailedJobContent
+        }
+    }
+    Get-Job | Receive-Job
 
     $Message = "Runbook started at [$currentTime] for Subscription [$SubscriptionName] finished. (Duration: $(("{0:hh\:mm\:ss}" -f ((Get-Date).ToUniversalTime() - $UTCTime))))"
     Write-Verbose $Message
