@@ -86,6 +86,6 @@ Function Set-MRVVMPowerState
     }
     [string]$ResultText = $result
 
-    #Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8100 -EntryType Information -Message "Assesment of VM [$($VirtualMachine.Name)] Finished Successully." -Category 1
-    #Write-EventLog -LogName "Application" -Source $EventAppName -EventID 8099 -EntryType Information -Message $ResultText -Category 1
+    Write-Verbose  "Assesment of VM [$($VirtualMachine.Name)] Finished Successully."
+    Write-Verbose  $ResultText
 }

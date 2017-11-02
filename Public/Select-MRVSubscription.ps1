@@ -143,7 +143,7 @@ Function Select-MRVSubscription
             }
             'SPNLogin'
             {
-                $AzureContext = Login-AzureRmAccount -Credential $SPNCredentials -ServicePrincipal -TenantId $TenantID -ErrorAction SilentlyContinue
+                $AzureContext = Login-AzureRmAccount -Credential $Credentials -ServicePrincipal -TenantId $TenantID -ErrorAction SilentlyContinue
             }
         }
         If ($AzureContext -ne $null)

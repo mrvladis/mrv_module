@@ -6,12 +6,21 @@ $Private = @( Get-ChildItem -Path $PSScriptRoot\Private\*.ps1 -ErrorAction Silen
 
 #Dot source the files
 Write-Verbose "Loading Functions into memory"
+$PSmode = $PSVersionTable.PSEdition
 Foreach ($Import in @($Public + $Private))
 {
     Try
     {
-        #Write-Host "Loading Function [$($import.fullname)]"
-        . $Import.FullName
+        Write-Verbose "Loading Function [$($import.fullname)]"
+       <#  If (($PSmode -like 'Core') -and ($Import.FullName -like "*MRV*Power*"))
+        {
+            Write-Host "Skipping Power Management functions as not yet supported in PowerShell Core"
+        }
+        else
+        {#>
+            . $Import.FullName
+        #}
+
     }
     Catch
     {
