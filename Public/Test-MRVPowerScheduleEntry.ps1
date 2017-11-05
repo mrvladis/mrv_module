@@ -41,7 +41,7 @@ function Test-MRVPowerScheduleEntry
                     {
                         if ($Patching)
                         {
-                            Write-Output "Skipping Date adjust as schedule is for patching."
+                            Write-Verbose "Skipping Date adjust as schedule is for patching."
                         }
                         else
                         {
@@ -57,20 +57,20 @@ function Test-MRVPowerScheduleEntry
             }
             else
             {
-                Write-Output "`tWARNING: Invalid time range format. Expects valid .Net DateTime-formatted start time and end time separated by '->'"
+                Write-Verbose "`tWARNING: Invalid time range format. Expects valid .Net DateTime-formatted start time and end time separated by '->'"
             }
         }
         # Otherwise attempt to parse as a full day entry, e.g. 'Monday' or 'December 25'
         else
         {
-            Write-Output "Can't find any schedule for today! Looks like Vm needs to be stopped."
+            Write-Verbose "Can't find any schedule for today! Looks like Vm needs to be stopped."
             return $false
         }
     }
     catch
     {
         # Record any errors and return false by default
-        Write-Output "`tWARNING: Exception encountered while parsing time range. Details: $($_.Exception.Message). Check the syntax of entry, e.g. '<StartTime> -> <EndTime>', or days/dates like 'Sunday' and 'December 25'"
+        Write-Verbose "`tWARNING: Exception encountered while parsing time range. Details: $($_.Exception.Message). Check the syntax of entry, e.g. '<StartTime> -> <EndTime>', or days/dates like 'Sunday' and 'December 25'"
         return $false
     }
     if ($currentTime -ge $rangeStart -and $currentTime -le $rangeEnd)
