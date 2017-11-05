@@ -29,7 +29,14 @@ Function Start-MRVVMPowerAssesment
     }
     Write-Verbose "Current time [$($currentTime.ToString("dddd, yyyy MMM dd HH:mm:ss"))] will be checked against schedules"
     Write-Verbose "Logging in to $SubscriptionName"
-    Select-MRVSubscription -SubscriptionName $SubscriptionName
+    If ($Subscription.result)
+    {
+        Set-MRVVMPowerState -vmId $VM.Id -DesiredState $DesiredState -Simulate:$Simulate -Verbose
+    }
+    else
+    {
+        Write-Error "Failed to select Subscription [$SubscriptionName] due to [$($Subscription.reason)]"
+    }
 
     $Days = @("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
     Write-Verbose "Getting VM"
@@ -188,8 +195,16 @@ Function Start-MRVVMPowerAssesment
             Write-Verbose "VM ID [$($VM.Id)]"
             Import-Module mrv_module
             Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
-            Select-MRVSubscription -SubscriptionName $SubscriptionName
-            Set-MRVVMPowerState -vmId $VM.Id -DesiredState $DesiredState -Simulate:$Simulate -Verbose
+            $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
+            If ($Subscription.result)
+            {
+                Set-MRVVMPowerState -vmId $VM.Id -DesiredState $DesiredState -Simulate:$Simulate -Verbose
+            }
+            else
+            {
+                Write-Error "Failed to select Subscription [$SubscriptionName] due to [$($Subscription.reason)]"
+            }
+
         }
     }
     $MaxWaitSec = 900
