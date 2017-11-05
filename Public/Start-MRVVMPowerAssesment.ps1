@@ -29,6 +29,7 @@ Function Start-MRVVMPowerAssesment
     }
     Write-Verbose "Current time [$($currentTime.ToString("dddd, yyyy MMM dd HH:mm:ss"))] will be checked against schedules"
     Write-Verbose "Logging in to $SubscriptionName"
+    $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
     If ($Subscription.result)
     {
         Set-MRVVMPowerState -vmId $VM.Id -DesiredState $DesiredState -Simulate:$Simulate -Verbose
