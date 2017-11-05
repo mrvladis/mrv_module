@@ -32,7 +32,7 @@ Function Start-MRVVMPowerAssesment
     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
     If ($Subscription.result)
     {
-        Set-MRVVMPowerState -vmId $VM.Id -DesiredState $DesiredState -Simulate:$Simulate -Verbose
+        Write-Verbose "Subscription [$SubscriptionName] has been selected sucessfully"
     }
     else
     {
