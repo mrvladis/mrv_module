@@ -736,17 +736,17 @@ Function New-MRVAzureVM
 ====> <=====
 #>
     $MaxDiskSize = 4095
-    Write-Host "VM Provisioning  v.1.0.0.0"
+    Write-Verbose "VM Provisioning  v.1.0.0.0"
     ##################Loading Modules #################
     [datetime]$time_start = Get-Date
     $timestamp = Get-Date -Format 'yyyy-MM-dd-HH-mm'
-    Write-Host "Deployment started at [$time_start]"
-    Write-Host 'Loading Azure Modules'
-    Write-Host 'Please Wait...'
-    If (!(Import-MRVModule  'AzureRM').Result)
+    Write-Verbose "Deployment started at [$time_start]"
+    Write-Verbose 'Loading Azure Modules'
+    Write-Verbose 'Please Wait...'
+    If (!(Import-MRVModule 'Azure').Result)
     {
         Write-Verbose "Can't load AzureRM module. Let's check if AzureRM.NetCore can be loaded"
-        If (!(Import-MRVModule  'AzureRM.NetCore').Result)
+        If (!(Import-MRVModule 'AzureRM.NetCore').Result)
         {
             Write-Error "Can't load Azure modules. Please make sure that you have Installed all the modules"
             return $false
@@ -754,13 +754,13 @@ Function New-MRVAzureVM
     }
     Write-Verbose "Azure Modules have been loaded sucessfully."
     ##################Loading Modules #################
-    Write-Host "Determine OS we are running script from..."
+    Write-Verbose "Determine OS we are running script from..."
     If ($($ENV:OS) -eq $null)
     {
-        Write-Host "OS has been identified as NONE-Windows"
-        Write-Host "   #### Warning  ####      #### Warning  ####      #### Warning  ####   " -ForegroundColor Yellow
-        Write-Host "Some functionality and checks, like Active Directory will be unavailable" -ForegroundColor Yellow
-        Write-Host "   #### Warning  ####      #### Warning  ####      #### Warning  ####   " -ForegroundColor Yellow
+        Write-Verbose "OS has been identified as NONE-Windows"
+        Write-Verbose "   #### Warning  ####      #### Warning  ####      #### Warning  ####   "
+        Write-Verbose "Some functionality and checks, like Active Directory will be unavailable"
+        Write-Verbose "   #### Warning  ####      #### Warning  ####      #### Warning  ####   "
         $ScriptRuntimeWin = $false
         $JsonTempFolder = '/tmp/'
         $PathDelimiter = '/'
@@ -772,7 +772,7 @@ Function New-MRVAzureVM
     }
     else
     {
-        Write-Host "OS has been identified as Windows"
+        Write-Verbose "OS has been identified as Windows"
         $ScriptRuntimeWin = $true
         $PathDelimiter = '\'
     }
@@ -813,10 +813,10 @@ Function New-MRVAzureVM
 
     if (! (Test-Path $JsonTempFolder))
     {
-        Write-Host "Folder to store temporary Deployment templates [$JsonTempFolder] does not exist! Let's try to create" -ForegroundColor Yellow
+        Write-Verbose "Folder to store temporary Deployment templates [$JsonTempFolder] does not exist! Let's try to create"
         if (New-Item $JsonTempFolder -ItemType Directory)
         {
-            Write-Host "Folder to store temporary Deployment templates [$JsonTempFolder] has been created sucessfully" -ForegroundColor Green
+            Write-Verbose "Folder to store temporary Deployment templates [$JsonTempFolder] has been created sucessfully"
         }
         else
         {
@@ -833,7 +833,7 @@ Function New-MRVAzureVM
             return $false
         }
     }
-    Write-Host  "Provisional operation has been started with timestamp $timestamp" -BackgroundColor DarkCyan
+    Write-Verbose  "Provisional operation has been started with timestamp $timestamp"
     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
     If (!$Subscription.Result)
     {
@@ -881,7 +881,7 @@ Function New-MRVAzureVM
     $ResourceGroupNametmp = $ResourceGroupName.Substring(0, $ResourceGroupName.lastIndexOf('-'))
     $SourceVMFQDN = $SourceVM + '.' + $DomainDNS
 
-    Write-Host 'Running Pre-Checks' -BackgroundColor DarkCyan
+    Write-Verbose 'Running Pre-Checks'
 
     If (($WorkSpaceId -eq 'notdefined') -and ($WorkSpaceName -eq 'notdefined') -and (!$SkipExtensions))
     {
@@ -917,7 +917,7 @@ Function New-MRVAzureVM
     }
     if ($SourceVM -ne '')
     {
-        Write-Host 'Performing SourceVM name check...'
+        Write-Verbose 'Performing SourceVM name check...'
         If ($SourceVM.IndexOf('.') -ge 0)
         {
             Write-Error "$SourceVM Virtual machine name (Short name, eg MRV-SH-MGMT-001 ) should be provided."
@@ -925,12 +925,12 @@ Function New-MRVAzureVM
         }
         else
         {
-            Write-Host  "SourceVM $SourceVM Looks good!" -ForegroundColor DarkGreen
+            Write-Verbose  "SourceVM $SourceVM Looks good!"
         }
     }
     if ($Override)
     {
-        Write-Host 'Override has been used! Skiping VM Name Format Check' -ForegroundColor Yellow
+        Write-Verbose 'Override has been used! Skiping VM Name Format Check'
     }
     else
     {
@@ -952,7 +952,7 @@ Function New-MRVAzureVM
     }
     if ($SourceVM -ne '')
     {
-        Write-Host  "Source VM has been specified. Checking if $SourceVM exist...."
+        Write-Verbose  "Source VM has been specified. Checking if $SourceVM exist...."
         if (!(Test-MRVVMExist $SourceVM).Result)
         {
             Write-Error  "Source VM $SourceVM Does Not Exist!"
@@ -960,12 +960,12 @@ Function New-MRVAzureVM
         }
         else
         {
-            Write-Host  "Source VM $SourceVM Exist! Continue..." -ForegroundColor DarkGreen
-            Write-Host  "Testing connectivity... trying to connect to WinRM on $SourceVMFQDN ....."
+            Write-Verbose  "Source VM $SourceVM Exist! Continue..."
+            Write-Verbose  "Testing connectivity... trying to connect to WinRM on $SourceVMFQDN ....."
 
             if ((Test-MRVTCPPort -EndPoint $SourceVMFQDN -Port $WINRMPort).Result )
             {
-                Write-Host  'Sucessfully Connected! Continue...' -ForegroundColor DarkGreen
+                Write-Verbose  'Sucessfully Connected! Continue...'
             }
             else
             {
@@ -976,7 +976,7 @@ Function New-MRVAzureVM
     }
 
     #} ##################Pre-run Checks
-    Write-Host "Validating VMIPaddresses"
+    Write-Verbose "Validating VMIPaddresses"
     if ($VMIPaddresses.Count -ne $IfaceCount)
     {
         Write-Error "You have specified [$IfaceCount] of Interfaces, but provided only [$($VMIPaddresses.Count)] IP addresses"
@@ -991,11 +991,11 @@ Function New-MRVAzureVM
     Write-Verbose "[$VMIPaddress] will be used as main IP address."
     if ($Override)
     {
-        Write-Host  'Override has been used! Skiping VM and IP check!!!' -ForegroundColor Yellow
+        Write-Verbose  'Override has been used! Skiping VM and IP check!!!'
     }
     else
     {
-        Write-Host  'Performing VM verification and populating the dependent variables'
+        Write-Verbose  'Performing VM verification and populating the dependent variables'
         if ((Test-MRVVMExist -name $VMname).Result)
         {
             Write-Error  "VM $VMname is already used!"
@@ -1005,7 +1005,7 @@ Function New-MRVAzureVM
         {
             Write-Verbose  "VM Name $VMname free to use."
         }
-        Write-Host  'Performing IP verification and populating the dependent variables'
+        Write-Verbose  'Performing IP verification and populating the dependent variables'
         ForEach ($IP in $VMIPaddresses)
         {
             Write-Verbose "Checking if IP [$IP] is free for use"
@@ -1023,16 +1023,16 @@ Function New-MRVAzureVM
             }
             else
             {
-                Write-Host  "IP [$IP] address free to use" -ForegroundColor Green
+                Write-Verbose  "IP [$IP] address free to use"
             }
         }
     }
     $counter = 1
     $SubNetNames = @()
-    Write-Host  "Checking if Subnets do exist for the provided value for VMIPaddresses" -BackgroundColor DarkCyan
+    Write-Verbose  "Checking if Subnets do exist for the provided value for VMIPaddresses"
     ForEach ($IP in $VMIPaddresses)
     {
-        Write-Host  "Trying to find the VNET and SubNET for the provided IP [$IP]"
+        Write-Verbose  "Trying to find the VNET and SubNET for the provided IP [$IP]"
         $SubNetPattern = $IP.Substring(0, $IP.LastIndexOf('.') + 1)
         $VirtualNetworkobj = Get-AzureRmVirtualNetwork  | ForEach-Object -Process {
             $_   | Where-Object -FilterScript {
@@ -1053,8 +1053,8 @@ Function New-MRVAzureVM
         }
         If (($VirtualNetworkobj.count -gt 1) -or ($Subnetobj.Count -gt 1))
         {
-            Write-Host  "VNetName: [$VNetName]"
-            Write-Host  "SubNetNames: [$SubNetNames]"
+            Write-Verbose  "VNetName: [$VNetName]"
+            Write-Verbose  "SubNetNames: [$SubNetNames]"
             Write-Error  "Multiple VNETs and / or SubNETs for the IP found! Can't understand where we going... Sorry... "
             Write-Error  "Multiple VNETs and / or SubNETs with the same CIDRs within the same subscription not supported."
             return $false
@@ -1086,13 +1086,13 @@ Function New-MRVAzureVM
     }
     $DiagStorageResourceGroup = $DiagStorageAccount.StorageResourceGroup
     $DiagStorageAccountName = $DiagStorageAccount.StorageAccountName
-    Write-Host  'Virtual Macine will be deployed with the following parameters:' -ForegroundColor DarkGreen
-    Write-Host  "VNetResourceGroup: [$VNetResourceGroup]"
-    Write-Host  "VNetName: [$VNetName]"
-    Write-Host  "Location: [$location]"
-    Write-Host  "SubNetNames: [$SubNetNames]"
-    Write-Host  "FaultDomainCount [$FaultDomainCount] UpdateDomainCount [$UpdateDomainCount]"
-    Write-Host  "StorageDiagAccountName: $DiagStorageAccountName"
+    Write-Verbose  'Virtual Macine will be deployed with the following parameters:'
+    Write-Verbose  "VNetResourceGroup: [$VNetResourceGroup]"
+    Write-Verbose  "VNetName: [$VNetName]"
+    Write-Verbose  "Location: [$location]"
+    Write-Verbose  "SubNetNames: [$SubNetNames]"
+    Write-Verbose  "FaultDomainCount [$FaultDomainCount] UpdateDomainCount [$UpdateDomainCount]"
+    Write-Verbose  "StorageDiagAccountName: $DiagStorageAccountName"
     If ($imagePublisher -ne 'MicrosoftWindowsServer')
     {
         Write-Verbose  'Custom image has been specified. Checking if it exist....'
@@ -1139,13 +1139,13 @@ Function New-MRVAzureVM
         Write-Verbose "OSType has been selected as [$osType]. Setting parameters to skip Windows Extentions"
         $SkipExtensions = $true
     }
-    Write-Host  'Checking if VMSize need to have Premium Storage...'
+    Write-Verbose  'Checking if VMSize need to have Premium Storage...'
     if (($VMSize.ToLower().Contains('ds')) -or ($VMSize.ToLower().Contains('gs') -or ($Vmsize.Substring($Vmsize.Length - 2) -match "[1-9]s") ))
     {
         if ($StorageAccountType.ToLower().Contains('standard'))
         {
-            Write-Host  "You have specified Sandard Storage, while VMSize is set to $VMSize " -ForegroundColor red
-            Write-Host  "$VMSize require premium storage, so the type of the storage will be changed to Premium_LRS"  -ForegroundColor red
+            Write-Verbose  "You have specified Sandard Storage, while VMSize is set to $VMSize "
+            Write-Verbose  "$VMSize require premium storage, so the type of the storage will be changed to Premium_LRS"
             $StorageAccountType = 'Premium_LRS'
         }
     }
@@ -1153,8 +1153,8 @@ Function New-MRVAzureVM
     {
         if ( -not ($StorageAccountType.ToLower().Contains('standard')))
         {
-            Write-Host  "You have specified Premium Storage, while VMSize is set to $VMSize " -ForegroundColor red
-            Write-Host  "$VMSize does not require premium storage, so the type of the storage will be changed to Standard_LRS"  -ForegroundColor red
+            Write-Verbose  "You have specified Premium Storage, while VMSize is set to $VMSize "
+            Write-Verbose  "$VMSize does not require premium storage, so the type of the storage will be changed to Standard_LRS"
             $StorageAccountType = 'Standard_LRS'
         }
     }
@@ -1168,13 +1168,13 @@ Function New-MRVAzureVM
     $StorageAccountName = $($Prefix_Main + ($StorageAccountType.Substring(0, 2)).ToLower() + ($StorageAccountType.Substring($StorageAccountType.IndexOf('_') + 1, $StorageAccountType.Length - $StorageAccountType.IndexOf('_') - 1)).ToLower() + $LocationCode.ToLower() + ($ResourceGroupName.Substring($CutIndex, $ResourceGroupName.Length - $CutIndex) -replace '-', '').ToLower() + $StorageAccountID).ToLower()
     If ($StorageAccountName.Length -gt 23)
     {
-        Write-Host "Storage account name [$StorageAccountName] is to long. Will be truncated to [$($StorageAccountName.Substring(0,23))]" -ForegroundColor Yellow
+        Write-Verbose "Storage account name [$StorageAccountName] is to long. Will be truncated to [$($StorageAccountName.Substring(0,23))]"
         $StorageAccountName = $StorageAccountName.Substring(0, 23)
     }
 
-    Write-Host  "StorageAccountName: $StorageAccountName"
-    Write-Host  "StorageDiagAccountName: $DiagStorageAccountName"
-    Write-Host  'Populating the AvailabilitySetName to use...' -ForegroundColor DarkGreen
+    Write-Verbose  "StorageAccountName: $StorageAccountName"
+    Write-Verbose  "StorageDiagAccountName: $DiagStorageAccountName"
+    Write-Verbose  'Populating the AvailabilitySetName to use...'
     if ($AvailabilitySetID -eq "00")
     {
         Write-Verbose "Availability Set ID left default [$AvailabilitySetID]. That mean that it will be ammended and NOT added to the name."
@@ -1186,8 +1186,8 @@ Function New-MRVAzureVM
         [string]$AvailabilitySetID_Pref = '-' + $AvailabilitySetID
     }
     $availabilitySetName = $ASPrefix + $LocationCode + ($ResourceGroupName.Substring($ResourceGroupName.IndexOf('-'), $ResourceGroupName.Length - $ResourceGroupName.IndexOf('-'))).ToUpper() + $AvailabilitySetID_Pref
-    Write-Host  "AvailabilitySetName: $availabilitySetName"
-    Write-Host  'Populating the IfaceNames to use...' -BackgroundColor DarkCyan
+    Write-Verbose  "AvailabilitySetName: $availabilitySetName"
+    Write-Verbose  'Populating the IfaceNames to use...'
     $IfaceNames_array = @()
     $ifacepattern = $VMname.Substring($VMname.IndexOf('-') + 1)
     $ifacepattern = $ifacepattern.Substring($ifacepattern.IndexOf('-') + 1)
@@ -1197,8 +1197,8 @@ Function New-MRVAzureVM
         $IfaceNames_array += $IFACEPrefix + $LocationCode + '-' + $ifacepattern + '-0' + $counter
         $counter += 1
     }
-    Write-Host  "IfaceNames: $IfaceNames_array"
-    Write-Host  'Populating the IPConfigName to use...' -BackgroundColor DarkCyan
+    Write-Verbose  "IfaceNames: $IfaceNames_array"
+    Write-Verbose  'Populating the IPConfigName to use...'
     $IPConfigNames_array = @()
     $counter = 1
     while ($counter -le $IfaceCount)
@@ -1206,19 +1206,19 @@ Function New-MRVAzureVM
         $IPConfigNames_array += $IPCFGPrefix + $LocationCode + '-' + $ifacepattern + '-0' + $counter
         $counter += 1
     }
-    Write-Host  "IPConfigNames: $IPConfigNames_array"
-    Write-Host  'Populating the VMDiskName to use...' -ForegroundColor DarkCyan
+    Write-Verbose  "IPConfigNames: $IPConfigNames_array"
+    Write-Verbose  'Populating the VMDiskName to use...'
     $VMDiskName = $VMname.ToLower()
-    Write-Host  "VMDiskName that will be used: $($VMDiskName + '-osdisk.vhd')"
+    Write-Verbose  "VMDiskName that will be used: $($VMDiskName + '-osdisk.vhd')"
     if ( -not (Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue))
     {
-        Write-Host  "Resource Group ($ResourceGroupName) was not found! Trying to create it..."
+        Write-Verbose  "Resource Group ($ResourceGroupName) was not found! Trying to create it..."
         New-AzureRmResourceGroup -Location $location -Name $ResourceGroupName
         Start-MRVWait -AprxDur 5 -Wait_Activity "Waiting for Resource Group to propagate"
     }
     else
     {
-        Write-Host  "Resource Group ($ResourceGroupName) has been found!"
+        Write-Verbose  "Resource Group ($ResourceGroupName) has been found!"
     }
     $DeploymentName = $timestamp + '-' + $ResourceGroupName + '-Dep-' + $VMname
 
@@ -1245,7 +1245,7 @@ Function New-MRVAzureVM
         }
         else
         {
-            Write-Host "Secure context for storage account [$JsonStorageAccountName] has been created sucessfully." -ForegroundColor Green
+            Write-Verbose "Secure context for storage account [$JsonStorageAccountName] has been created sucessfully."
         }
     }
     Write-Verbose  "Creating container $containername"
@@ -1271,10 +1271,10 @@ Function New-MRVAzureVM
             $token = '?' + $token
         }
     }
-    Write-Host  'Populating URLS for the Base Template' -ForegroundColor DarkGreen
+    Write-Verbose  'Populating URLS for the Base Template'
     $JsonTemplatesUrl = $JSONUrlBase + $containername + '/'
-    Write-Host  "Main Temlate URL will be $JsonUrlMain Reading Main Template to be deployed"
-    Write-Host  'Preparing main template...' -BackgroundColor DarkCyan
+    Write-Verbose  "Main Temlate URL will be $JsonUrlMain Reading Main Template to be deployed"
+    Write-Verbose  'Preparing main template...'
     $OutFileName = $JSONBaseTemplateFile.Substring(0, $JSONBaseTemplateFile.IndexOf('.')) + $containername + '.json'
     $JSONParametersOutFileName = $JSONParametersFile.Substring(0, $JSONParametersFile.IndexOf('.')) + $OutFileName
     $JsonUrlMain = $JSONUrlBase + $containername + '/' + $OutFileName + $token
@@ -1283,7 +1283,7 @@ Function New-MRVAzureVM
     $InputTemplate = $null
     $InputTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONBaseTemplateFile
     Write-Verbose "JSON Main Url is [$JsonUrlMain]"
-    Write-Host  "Loading Main Template from file [$InputTemplatePath]"
+    Write-Verbose  "Loading Main Template from file [$InputTemplatePath]"
     try
     {
         $InputTemplate = [system.io.file]::ReadAllText($InputTemplatePath) -join "`n" | ConvertFrom-Json
@@ -1293,11 +1293,11 @@ Function New-MRVAzureVM
         Write-Error  "Can't load the main template! Please check the path [$InputTemplatePath]"
         return $false
     }
-    Write-Host  'Main Template has been loaded sucessfully!' -ForegroundColor DarkGreen
+    Write-Verbose  'Main Template has been loaded sucessfully!'
     $InputParameters = $null
     $InputParametersPath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONParametersFile
     Write-Verbose "JSON Parameters Main Url is [$JSONParametersUrl]"
-    Write-Host  "Loading Main Parameters Template from file [$InputParametersPath]"
+    Write-Verbose  "Loading Main Parameters Template from file [$InputParametersPath]"
     try
     {
         $InputParameters = [system.io.file]::ReadAllText($InputParametersPath) -join "`n" | ConvertFrom-Json
@@ -1313,7 +1313,7 @@ Function New-MRVAzureVM
     $InputPostTasks += '$EnGbDefaulturl = ''' + $JSONUrlBase + $containername + '/' + $EnGbDefaultFile + $token + "'`n"
     $InputPostTasks += '$EnGbWelcomeurl = ''' + $JSONUrlBase + $containername + '/' + $EnGbWelcomeFile + $token + "'`n"
     Write-Verbose "JSON Parameters After Deployment Script Url is [$CustomScriptUrl]"
-    Write-Host  "Loading After Deployment Script file [$InputPostTasksPath]"
+    Write-Verbose  "Loading After Deployment Script file [$InputPostTasksPath]"
     try
     {
         $InputPostTasks += [system.io.file]::ReadAllText($InputPostTasksPath)
@@ -1326,7 +1326,7 @@ Function New-MRVAzureVM
     {
         Write-Verbose  'Copying Regional Settings REG files'
         $EnGbDefaultTemplatePath = $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbDefaultFile)
-        Write-Host  "Copying Regional Settings REG from file [$EnGbDefaultTemplatePath]"
+        Write-Verbose  "Copying Regional Settings REG from file [$EnGbDefaultTemplatePath]"
         try
         {
             Copy-Item -Path $EnGbDefaultTemplatePath  -Destination $DeploymentTempPath
@@ -1350,13 +1350,13 @@ Function New-MRVAzureVM
         }
         Write-Verbose  "Regional Settings REG from file [$EnGbWelcomeFile] has been Copied sucessfully!"
     }
-    Write-Host "Getting VM resource and updating accordingly"  -BackgroundColor DarkCyan
+    Write-Verbose "Getting VM resource and updating accordingly"
     $VMResources = $InputTemplate.resources |
         ForEach-Object -Process {$_} | Where-Object -FilterScript {
         $_.name -match "\[parameters\(\'VMName\'\)\]"}
     if ($imageReferenceID -ne '')
     {
-        Write-Host "imageReferenceID has been provided. Removing Published Image data" -ForegroundColor Yellow
+        Write-Verbose "imageReferenceID has been provided. Removing Published Image data"
         $VMResources.properties.storageProfile.imageReference.PsObject.Members.Remove('publisher')
         $VMResources.properties.storageProfile.imageReference.PsObject.Members.Remove('offer')
         $VMResources.properties.storageProfile.imageReference.PsObject.Members.Remove('sku')
@@ -1368,7 +1368,7 @@ Function New-MRVAzureVM
     }
     if ($ManagedDisks)
     {
-        Write-Host "Changing Disk Type to [Managed]" -ForegroundColor White -BackgroundColor DarkBlue
+        Write-Verbose "Changing Disk Type to [Managed]"
         $ASresource = $InputTemplate.resources |
             ForEach-Object -Process {$_} | Where-Object -FilterScript {
             $_.name -match "\[parameters\(\'availabilitySetName\'\)\]"}
@@ -1398,7 +1398,7 @@ Function New-MRVAzureVM
     }
     if ($UseExistingDisk)
     {
-        Write-Host  'Changing depployment from FROMIMAGE to ATTACH' -ForegroundColor White -BackgroundColor DarkBlue
+        Write-Verbose  'Changing depployment from FROMIMAGE to ATTACH'
         $VMResources.properties.storageProfile.osDisk.createOption = 'Attach'
         Write-Verbose  'Removing osProfile section'
         $VMResources.properties.PsObject.Members.Remove('osProfile')
@@ -1411,7 +1411,7 @@ Function New-MRVAzureVM
             $VMResources.properties.storageProfile.osDisk.managedDisk | Add-Member -MemberType NoteProperty -Name id -Value "[resourceId('Microsoft.Compute/disks', concat(parameters('VMDiskName'), '-osdisk'))]"
         }
         Write-Verbose  'Removing dataDisks section'
-        Write-Host  'Dont forget to add DATA disks later, if VM has had any!!!!' -ForegroundColor Yellow -BackgroundColor DarkBlue
+        Write-Verbose  'Dont forget to add DATA disks later, if VM has had any!!!!'
         $VMResources.properties.storageProfile.PsObject.Members.Remove('dataDisks')
     }
     else
@@ -1446,7 +1446,7 @@ Function New-MRVAzureVM
     }
     if ($IfaceCount -gt 1)
     {
-        Write-Host  "Changing depployment For Multiple Interfaces with the number of [$IfaceCount]" -BackgroundColor Cyan
+        Write-Verbose  "Changing depployment For Multiple Interfaces with the number of [$IfaceCount]"
         Write-Verbose  'Adding Interfaces'
         $count = 1
         While ($count -lt $IfaceCount)
@@ -1470,7 +1470,7 @@ Function New-MRVAzureVM
     }
     if ($UsePlan)
     {
-        Write-Host  'Adding Plan to the Deployment' -ForegroundColor White -BackgroundColor DarkBlue
+        Write-Verbose  'Adding Plan to the Deployment'
         $plan = [pscustomobject][ordered]@{
             name = "[parameters('imageSku')]"
             publisher = "[parameters('imagePublisher')]"
@@ -1484,7 +1484,7 @@ Function New-MRVAzureVM
     }
     If ($SkipExtensions)
     {
-        Write-Host "SkipExtensions has ben selected. Exctentions will be skipped." -ForegroundColor Yellow
+        Write-Verbose "SkipExtensions has ben selected. Exctentions will be skipped."
         Write-Verbose "Removing [MS.MicrosoftMonitoringAgent]"
         $VMResources.resources = $VMResources.resources |
             Where-Object -FilterScript {
@@ -1520,11 +1520,11 @@ Function New-MRVAzureVM
         {
             $MonitoringAgentResource.name = $MonitoringAgentResource.name.Substring(0, 64)
         }
-        Write-Host  "BGInfo url is $($JSONUrlBase + $containername + '/'+$JSONBGinfoTemplateFile+$token)"
+        Write-Verbose  "BGInfo url is $($JSONUrlBase + $containername + '/'+$JSONBGinfoTemplateFile+$token)"
         Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONBGinfoTemplateFile) -Destination $DeploymentTempPath
-        Write-Host  "AzureDiagnostics  url is $($JSONUrlBase + $containername + '/'+$JSONAzureDiagnosticsTemplateFile+$token)"
+        Write-Verbose  "AzureDiagnostics  url is $($JSONUrlBase + $containername + '/'+$JSONAzureDiagnosticsTemplateFile+$token)"
         Copy-Item -Path $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONAzureDiagnosticsTemplateFile) -Destination $DeploymentTempPath
-        Write-Host  "AzureOMS url is $($JSONUrlBase + $containername + '/'+$JSONOMSTemplateFile+$token)"
+        Write-Verbose  "AzureOMS url is $($JSONUrlBase + $containername + '/'+$JSONOMSTemplateFile+$token)"
         $OMSTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONOMSTemplateFile
         if ($OMSbyId)
         {
@@ -1551,7 +1551,7 @@ Function New-MRVAzureVM
         Write-Error  "Can't save or convert the main template to a file $($DeploymentTempPath +$OutFileName) !"
         return $false
     }
-    Write-host "Processing Parameters for VM Deployment"
+    Write-Verbose "Processing Parameters for VM Deployment"
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VMname -Value @{Value = $VMname}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name location -Value @{Value = $location}
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name StorageAccountName -Value @{Value = $StorageAccountName}
@@ -1628,7 +1628,7 @@ Function New-MRVAzureVM
     {
         Write-Verbose  'Standalone Machine Skipping Domain Join Operations'
     }
-    Write-Host  'Going to upload the Json templated to BLOB storage' -ForegroundColor DarkGreen
+    Write-Verbose  'Going to upload the Json templated to BLOB storage'
     Write-Verbose  'Uploading files.....'
     $files = Get-ChildItem -Recurse -Path $DeploymentTempPath
     foreach ($file in $files)
@@ -1644,13 +1644,13 @@ Function New-MRVAzureVM
     }
     If ( $Simulate)
     {
-        Write-Host  'Simulate has been used!' -ForegroundColor red
-        Write-Host  'Skipping Deployment'
+        Write-Verbose  'Simulate has been used!'
+        Write-Verbose  'Skipping Deployment'
         return $false
     }
     else
     {
-        Write-Host  'Provisioning VM.....' -ForegroundColor DarkBlue -BackgroundColor White
+        Write-Verbose  'Provisioning VM.....'
         $DeploymentSatus = New-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Verbose -Name $DeploymentName -TemplateUri $JsonUrlMain -TemplateParameterUri $JSONParametersUrl
         <#  $DeploymentSatus = New-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Verbose -Name $DeploymentName -TemplateUri $JsonUrlMain -VMName $VMname `
             -location $location -StorageAccountName $StorageAccountName -ImageSKU $ImageSKU `
@@ -1662,7 +1662,7 @@ Function New-MRVAzureVM
             -DatadiskSizeGB $DatadiskSizeGB -FaultDomainCount $FaultDomainCount -UpdateDomainCount $UpdateDomainCount -EnableAcceleratedNetworking $EnableAcceleratedNetworking.IsPresent
     #>
     }
-    Write-Host  'Deployment status ....'
+    Write-Verbose  'Deployment status ....'
 
     $EmailBody = [pscustomobject][ordered]@{
         VMName = $VMname
@@ -1678,7 +1678,7 @@ Function New-MRVAzureVM
     $EmailTitle = "VM Provisioning Operation for VM [$VMname] in Resource Group [$ResourceGroupName] completed with status [$($DeploymentSatus.ProvisioningState)]"
     if ($DeploymentSatus.ProvisioningState -like 'Succeeded')
     {
-        Write-Host 'Deployment Succeed!' -ForegroundColor DarkGreen
+        Write-Verbose 'Deployment Succeed!'
     }
     if (($DeploymentSatus.ProvisioningState -like 'Succeeded') -or $ForcePostTasks)
     {
@@ -1713,7 +1713,7 @@ Function New-MRVAzureVM
         }
         if ($UseExistingDisk)
         {
-            Write-Host  'Skipping After Deployment Tasks as using Existing VHD or [SkipExtensions] specified' -ForegroundColor Yellow
+            Write-Verbose  'Skipping After Deployment Tasks as using Existing VHD or [SkipExtensions] specified'
         }
         elseif (-not $SkipExtensions)
         {
@@ -1727,7 +1727,7 @@ Function New-MRVAzureVM
             }
             else
             {
-                Write-Host "Provisioning After Deployment Tasks Completed Sucessfully" -ForegroundColor Green
+                Write-Verbose "Provisioning After Deployment Tasks Completed Sucessfully"
             }
         }
         Write-Verbose "Updating VM Tags"
@@ -1735,8 +1735,8 @@ Function New-MRVAzureVM
         $TagsTable.Add('ChangeControl', $ChangeControl)
         Update-MRVAzureTag -ResourceName $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName
         $time_end = get-date
-        Write-Host  "Deployment finished at [$time_end]" -BackgroundColor DarkCyan
-        Write-Host  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
+        Write-Verbose  "Deployment finished at [$time_end]"
+        Write-Verbose  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
         return $true
     }
 }
