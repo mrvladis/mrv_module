@@ -47,10 +47,6 @@ Function Remove-MRVAzureVM
         $ResourceGroupName
     )
     $ManagedDisks = $false
-
-    $ResourceGroupName = 'MG-RG-TST-01'
-    $VMname = 'MG-SH-TST-02'
-    $VMname2 = 'MG-SH-TST-03'
     try
     {
         $ResourceGroup = Get-AzureRmResourceGroup -Name $ResourceGroupName
@@ -106,8 +102,12 @@ Function Remove-MRVAzureVM
 
     Write-Verbose "Removing VM"
     $vm | Remove-AzureRmVM -Force
-    Write-Verbose "Removing VM Interface"
-    $vm | Remove-AzureRmNetworkInterface -Force
+    Write-Verbose "Removing VM Interfaces"
+    foreach ($Interface in $VM.NetworkProfile.NetworkInterfaces)
+    {
+        Remove-AzureRmResource -ResourceId $Interface.Id -Force
+    }
+
     If ($vm.StorageProfile.OSDisk.ManagedDisk -eq $null)
     {
         Write-verbose "We have VHDs on Storage Account"
