@@ -33,7 +33,7 @@ Azure region that is pre-defined within the function.
 
 
 #>
-Function New-MRVAzureVM
+Function Delete-MRVAzureVM
 {
     [CmdletBinding()]
     Param
