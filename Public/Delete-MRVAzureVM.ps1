@@ -99,7 +99,7 @@ Function Delete-MRVAzureVM
     Write-Verbose "Trying to delete Boot Diagnostic Data"
     try
     {
-        Get-AzureRmStorageAccount -ResourceGroupName $DiagStorageAccountResourceGroup -Name $DiagStorageAccount | Get-AzureStorageContainer | where { $_.Name -eq $DiagContainerName } | Remove-AzureStorageContainer –Force
+        Get-AzureRmStorageAccount -ResourceGroupName $DiagStorageAccountResourceGroup -Name $DiagStorageAccount | Get-AzureStorageContainer | where { $_.Name -eq $DiagContainerName } | Remove-AzureStorageContainer -Force
     }
     catch
     {
@@ -107,9 +107,9 @@ Function Delete-MRVAzureVM
     }
 
     Write-Verbose "Removing VM"
-    $vm | Remove-AzureRmVM –Force
+    $vm | Remove-AzureRmVM -Force
     Write-Verbose "Removing VM Interface"
-    $vm | Remove-AzureRmNetworkInterface –Force
+    $vm | Remove-AzureRmNetworkInterface -Force
     If ($vm.StorageProfile.OSDisk.ManagedDisk -eq $null)
     {
         Write-verbose "We have VHDs on Storage Account"
@@ -139,7 +139,7 @@ Function Delete-MRVAzureVM
             else
             {
                 $DataDiskStorageAcct = Get-AzureRmStorageAccount | where { $_.StorageAccountName -eq $disk.Vhd.Uri.Split('/')[2].Split('.')[0]}
-                $DataDiskStorageAcct | Remove-AzureStorageBlob -Container $disk.Vhd.Uri.Split('/')[-2] -Blob $disk.Vhd.Uri.Split('/')[-1]
+                $DataDiskStorageAcct | Remove-AzureStorageBlob -Container $disk.Vhd.Uri.Split('/')[-2] -Blob $disk.Vhd.Uri.Split('/')[-1] -ea Ignore
             }
         }
     }
