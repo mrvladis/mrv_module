@@ -745,11 +745,15 @@ Function New-MRVAzureVM
     Write-Verbose 'Please Wait...'
     If (!(Import-MRVModule 'Azure').Result)
     {
-        Write-Verbose "Can't load AzureRM module. Let's check if AzureRM.NetCore can be loaded"
-        If (!(Import-MRVModule 'AzureRM.NetCore').Result)
+        Write-Verbose "Can't load Azure module. Let's check if AzureRM can be loaded"
+        If (!(Import-MRVModule 'AzureRM').Result)
         {
-            Write-Error "Can't load Azure modules. Please make sure that you have Installed all the modules"
-            return $false
+            Write-Verbose "Can't load AzureRM module. Let's check if AzureRM.NetCore can be loaded"
+            If (!(Import-MRVModule 'AzureRM.NetCore').Result)
+            {
+                Write-Error "Can't load Azure modules. Please make sure that you have Installed all the modules"
+                return $false
+            }
         }
     }
     Write-Verbose "Azure Modules have been loaded sucessfully."
