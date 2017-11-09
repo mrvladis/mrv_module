@@ -16,12 +16,10 @@ Function Start-MRVVMPowerAssesment
     $currentTime = [System.TimeZoneInfo]::ConvertTime($UTCTime, $oToTimeZone)
     $Message = ""
     $VMStates = @()
-    #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8001 -EntrySubscriptionName Information -Message "Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
     Write-Verbose "Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
     if ($Simulate)
     {
         Write-Verbose "*** Running in SIMULATE mode. No power actions will be taken. ***"
-        #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 80010 -EntrySubscriptionName Warning -Message "*** Running in SIMULATE mode. No power actions will be taken. ***" -Category 1
     }
     else
     {
@@ -46,6 +44,7 @@ Function Start-MRVVMPowerAssesment
     $WeekOfMonth = [math]::Floor(((Get-Date).Day - 1) / 7 + 1)
     $Patching_Schedule = "23:00->03:00"
     $PatchingTagName = "Patching_Schedule"
+    $DayNumber = $Days.IndexOf($DayToday.ToString())
     Write-Verbose "Today is $DayToday and week number [$WeekOfMonth]"
 
     # Get a list of all virtual machines in subscription
@@ -56,6 +55,7 @@ Function Start-MRVVMPowerAssesment
     {
         Write-Verbose "Processing VM [$($VM.name)]"
         $Schedule = $null
+        $ScheduleTag = $null
         $VMtags = $null
         $VMtags = $VM.Tags
         if ($VMtags -eq $null)
@@ -73,7 +73,6 @@ Function Start-MRVVMPowerAssesment
         }
         else
         {
-            #$ifAlwaysOn = $false # Already set above
             Write-Verbose "[$($VM.Name)]: Has AlwaysOn set to False ($ifAlwaysOn)"
         }
         If (($VMtags.GetEnumerator() | Where-Object {$_.Key -like "AlwaysOFF"}).value -like "*true")
@@ -83,11 +82,8 @@ Function Start-MRVVMPowerAssesment
         }
         else
         {
-            #$ifAlwaysOff = $false # Already set above
             Write-Verbose "[$($VM.Name)]: Has AlwaysOFF set to False ($ifAlwaysOff)"
         }
-        #Write-Verbose "After Always Tags"
-        #$VMtags.GetEnumerator()
         If (($ifAlwaysOn) -and ($ifAlwaysOff))
         {
             Write-Verbose "[$($VM.Name)]: Has AlwaysOn and AlwaysOff both set to TRUE. This doesn't make sense. Skipping...."
@@ -96,23 +92,39 @@ Function Start-MRVVMPowerAssesment
 
         If ((-not $ifAlwaysOn) -and (-not $ifAlwaysOff))
         {
-            try
-            {
-                $Schedule = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like "Schedule_$DayToday"}).Value
-            }
-            catch
+            $ScheduleTag = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like "Schedule"}).Value
+
+            if ($ScheduleTag -eq $null)
             {
                 # No direct or inherited tag. Skip this VM.
-                Write-Verbose "[$($VM.Name)]: Not tagged for the $DayToday. Skipping this VM."
-                continue
+                Write-Verbose "[$($VM.Name)]: Not tagged for the Schedule. Let's check old Tags"
+                $ScheduleTag = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like "Schedule_$DayToday"}).Value
+                if ($ScheduleTag -eq $null)
+                {
+                    # No direct or inherited tag. Skip this VM.
+                    Write-Verbose "[$($VM.Name)]: Not tagged for the $DayToday either. Skipping this VM."
+                    continue
+
+                }
+                else
+                {
+                    $schedule = $ScheduleTag
+                }
             }
-            if ($Schedule -eq $null)
+            else
             {
-                # No direct or inherited tag. Skip this VM.
-                Write-Verbose "[$($VM.Name)]: Not tagged for the $DayToday. Skipping this VM."
-                continue
+                [array]$Shedule_Array = $ScheduleTag.Split('/')
+                $schedule = $Shedule_Array[$DayNumber]
+                If ($schedule -eq $null)
+                {
+                    Write-Verbose "[$($VM.Name)]: Not tagged for the [$DayToday]. Skipping this VM."
+                    continue
+                }
             }
+            # $ScheduleTag = '8->18/9->18/10->18/11->18,19->23/12->18/-/-'
             # Parse the ranges in the Tag value. Expects a string of comma-separated time ranges, or a single time range
+
+
             $timeRangeList = @($schedule -split "," | ForEach-Object {$_.Trim()})
             Write-Verbose "Check each range against the current time to see if any schedule is matched"
             $IsScheduleMatched = $false
@@ -217,8 +229,7 @@ Function Start-MRVVMPowerAssesment
         $WaitingSec ++
         if ($WaitingSec % 60 -eq 0)
         {
-            Write-Host "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still running."
-            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Information -Message "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
+            Write-Host "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still running. Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
         }
         If ($WaitingSec -le $MaxWaitSec)
         {
@@ -227,7 +238,6 @@ Function Start-MRVVMPowerAssesment
         else
         {
             Write-Host "MaxWaitSec [$MaxWaitSec] reached. Exiting...."
-            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8098 -EntrySubscriptionName Error -Message "MaxWaitSec [$MaxWaitSec] reached. Exiting..... Runbook started at [$currentTime] for Subscription [$SubscriptionName]" -Category 1
             $JobsRCount = 0
         }
     }
@@ -237,17 +247,15 @@ Function Start-MRVVMPowerAssesment
         {
             [String]$FailedJobContent = $FailedJob | Receive-Job
             $Message = "Job [$($FailedJob.name)] has failed. Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
-            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8060 -EntrySubscriptionName Error -Message $Message -Category 1
             Write-Verbose $Message
-            #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8061 -EntrySubscriptionName Error -Message $FailedJobContent -Category 1
             Write-Verbose $FailedJobContent
         }
     }
     Get-Job | Receive-Job
 
-    $Message = "Runbook started at [$currentTime] for Subscription [$SubscriptionName] finished. (Duration: $(("{0:hh\:mm\:ss}" -f ((Get-Date).ToUniversalTime() - $UTCTime))))"
-    Write-Verbose $Message
-    #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8002 -EntrySubscriptionName Information -Message $Message -Category 1
+    Write-Verbose  "Deployment finished at [$time_end]"
+    Write-Verbose  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
+
 }
 
 
