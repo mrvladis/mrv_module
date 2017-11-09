@@ -67,12 +67,10 @@ Function Start-MRVGarbageCollector
             Foreach ($Resource in $ResourcesToDelete)
             {
                 Write-Verbose "Deleting VM [$($Resource.Name)] in ResourceGroup [$($Resource.ResourceGroupName)]"
-                $initScript = {
-                    Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
-                }
                 $scriptBlock = {
                     Param($Resource, $Simulate, $Connection, $SubscriptionName)
                     Write-Verbose "VM ID [$($VM.Id)]"
+                    Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
                     Import-Module mrv_module
                     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
                     If ($Subscription.result)
@@ -86,7 +84,6 @@ Function Start-MRVGarbageCollector
                 }
                 $jobParams = @{
                     'ScriptBlock'          = $scriptBlock
-                    'InitializationScript' = $initScript
                     'ArgumentList'         = @($Resource, $Simulate, $Connection, $SubscriptionName)
                     'Name'                 = [string]$jobname
                 }

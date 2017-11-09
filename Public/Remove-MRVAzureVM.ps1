@@ -41,7 +41,6 @@ Function Remove-MRVAzureVM
         [Parameter(Mandatory = $true)]
         [String]
         $VMname,
-
         [Parameter(Mandatory = $true)]
         [String]
         $ResourceGroupName,
