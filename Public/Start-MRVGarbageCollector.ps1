@@ -75,7 +75,7 @@ Function Start-MRVGarbageCollector
                     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
                     If ($Subscription.result)
                     {
-                        Remove-MRVAzureVM -VMname $Resource.Name -ResourceGroupName $Resource.ResourceGroupName -Simulate $Simulate -Verbose -Simulate:$Simulate
+                        Remove-MRVAzureVM -VMname $Resource.Name -ResourceGroupName $Resource.ResourceGroupName -Verbose -Simulate:$Simulate
                     }
                     else
                     {
