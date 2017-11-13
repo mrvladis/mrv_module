@@ -1734,6 +1734,10 @@ Function New-MRVAzureVM
                 Write-Verbose "Provisioning After Deployment Tasks Completed Sucessfully"
             }
         }
+        Write-verbose "Removing joindomain extention"
+        Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "joindomain" -Force
+        Write-verbose "Removing AfterDeploymentTasks extention"
+        Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "AfterDeploymentTasks" -Force
         Write-Verbose "Updating VM Tags"
         $TagsTable.Add('Description', $Description)
         $TagsTable.Add('ChangeControl', $ChangeControl)

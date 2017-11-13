@@ -14,20 +14,17 @@ Function to delete VM and all assosiated componets.
 	--------
 
 	Output
-	--------
-  	As the result of function execution location code returned. If location has not being added - it will return "NA" code.
-	Hash Table returned. This can be ammended.
-  	It will have the following format:
     Name	            		Value
     ----	            		-----
 	Result	            		True / False
-	StorageAccountName
-	StorageAccountKey
     Error               $error
 
 Syntax: Function has the following parameters:
-.Parameter
-Azure region that is pre-defined within the function.
+.Parameter VMname
+Name of the Virtual Machine that need to be deleted.
+.Parameter ResourceGroupName
+Name of Resource Group forthe Virtual Machine that need to be deleted.
+
 
 .Example
 

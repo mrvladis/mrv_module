@@ -10,7 +10,6 @@ Function Start-MRVVMPowerAssesment
         [switch]
         $Simulate
     )
-    $EventAppName = "PowerShellAutomation"
     $UTCTime = (Get-Date).ToUniversalTime()
     $oToTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById("GMT Standard Time")
     $currentTime = [System.TimeZoneInfo]::ConvertTime($UTCTime, $oToTimeZone)
@@ -36,17 +35,15 @@ Function Start-MRVVMPowerAssesment
     {
         Write-Error "Failed to select Subscription [$SubscriptionName] due to [$($Subscription.reason)]"
     }
-
     $Days = @("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
     Write-Verbose "Getting VM"
     [string]$time = Get-Date -Format 'yyyy-MM-dd-HH-mm'
     $DayToday = (get-date).DayOfWeek
     $WeekOfMonth = [math]::Floor(((Get-Date).Day - 1) / 7 + 1)
-    $Patching_Schedule = "23:00->03:00"
-    $PatchingTagName = "Patching_Schedule"
+    #$Patching_Schedule = "23:00->03:00"
+    $PatchingTagName = "PatchingSchedule"
     $DayNumber = $Days.IndexOf($DayToday.ToString())
     Write-Verbose "Today is $DayToday and week number [$WeekOfMonth]"
-
     # Get a list of all virtual machines in subscription
     $VMList = Get-AzureRmVM
     Write-Verbose "Processing VMs. We have $($VMList.Count) to proceed"
@@ -93,7 +90,6 @@ Function Start-MRVVMPowerAssesment
         If ((-not $ifAlwaysOn) -and (-not $ifAlwaysOff))
         {
             $ScheduleTag = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like "Schedule"}).Value
-
             if ($ScheduleTag -eq $null)
             {
                 # No direct or inherited tag. Skip this VM.
@@ -104,7 +100,6 @@ Function Start-MRVVMPowerAssesment
                     # No direct or inherited tag. Skip this VM.
                     Write-Verbose "[$($VM.Name)]: Not tagged for the $DayToday either. Skipping this VM."
                     continue
-
                 }
                 else
                 {
@@ -123,8 +118,6 @@ Function Start-MRVVMPowerAssesment
             }
             # $ScheduleTag = '8->18/9->18/10->18/11->18,19->23/12->18/-/-'
             # Parse the ranges in the Tag value. Expects a string of comma-separated time ranges, or a single time range
-
-
             $timeRangeList = @($schedule -split "," | ForEach-Object {$_.Trim()})
             Write-Verbose "Check each range against the current time to see if any schedule is matched"
             $IsScheduleMatched = $false
@@ -146,7 +139,6 @@ Function Start-MRVVMPowerAssesment
             Write-Verbose "Based on AlwaysOn [$ifAlwaysOn] VM Schedule is matched."
             $IsScheduleMatched = $true
             $MatchedSchedule = 'AlwaysOn'
-
         }
         elseif ($ifAlwaysOff)
         {
@@ -158,13 +150,20 @@ Function Start-MRVVMPowerAssesment
         if ($VMtags.ContainsKey($PatchingTagName))
         {
             Write-Verbose "Patching Tag found. Checking if it is time for patching.."
-            $PatchingGroup = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like $PatchingTagName}).Value
-            Write-Verbose "We have got Patching Group [$PatchingGroup]. Is it time for patching?"
-            $PatchingWeekNumber = $PatchingGroup.Substring(1, 1)
-            $PatchingDay = $PatchingGroup.Substring(3, 3)
-            if (($PatchingDay -eq $DayToday.ToString().substring(0, 3).ToUpper()) -or ($PatchingDay -eq (get-date).AddDays(-1).DayOfWeek.ToString().substring(0, 3).ToUpper()))
+            $PatchingTagValue = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like "Schedule"}).Value
+
+            If ($PatchingTagValue.IndexOf('/') -gt 0)
             {
-                Write-Verbose "It looks like currently Patching or After Patching Day. Checking the Time"
+                $PatchingDates = $PatchingTagValue.Substring(0, $PatchingTagValue.IndexOf('/'))
+                $PatchingDates = $PatchingDates.Split(',')
+            }
+            If ($PatchingDates.Contains($DayNumber.ToString()))
+            {
+                $Patching_Schedule = $PatchingTagValue.Substring($PatchingTagValue.IndexOf('/') + 1)
+
+                #  if (($PatchingDay -eq $DayToday.ToString().substring(0, 3).ToUpper()) -or ($PatchingDay -eq (get-date).AddDays(-1).DayOfWeek.ToString().substring(0, 3).ToUpper()))
+
+                Write-Verbose "It looks like currently Patching. Checking the Time" # or After Patching Day
                 if ((Test-MRVPowerScheduleEntry -TimeRange $Patching_Schedule -Patching))
                 {
                     Write-Verbose "It looks like currently patching time, so we need to ensure that VM is up."
@@ -252,10 +251,8 @@ Function Start-MRVVMPowerAssesment
         }
     }
     Get-Job | Receive-Job
-
     Write-Verbose  "Deployment finished at [$time_end]"
     Write-Verbose  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
-
 }
 
 

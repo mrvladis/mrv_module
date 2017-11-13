@@ -34,6 +34,7 @@ Function Start-MRVGarbageCollector
 
         }
     }
+    $time_start = get-date
     $Resources = Find-AzureRmResource -ResourceType $ResourceType
     $ResourcesToDelete = @()
     Foreach ($Resource in $Resources)
@@ -122,13 +123,13 @@ Function Start-MRVGarbageCollector
         foreach ($FailedJob in (Get-Job -State Failed))
         {
             [String]$FailedJobContent = $FailedJob | Receive-Job
-            $Message = "Job [$($FailedJob.name)] has failed. Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
+            $Message = "Job [$($FailedJob.name)] has failed. Runbook started at [$time_start] for Subscription [$SubscriptionName]"
             Write-Verbose $Message
             Write-Verbose $FailedJobContent
         }
     }
     Get-Job | Receive-Job
-
+    $time_end = Get-date
     Write-Verbose  "Deployment finished at [$time_end]"
     Write-Verbose  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
 }
