@@ -1734,9 +1734,11 @@ Function New-MRVAzureVM
                 Write-Verbose "Provisioning After Deployment Tasks Completed Sucessfully"
             }
         }
+        Start-MRVWait -AprxDur 60 -Wait_Activity "Waiting before removal of joindomain extension...."
         Write-verbose "Removing joindomain extention"
         Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "joindomain" -Force
-        Write-verbose "Removing AfterDeploymentTasks extention"
+        Start-MRVWait -AprxDur 60 -Wait_Activity "Waiting before removal of extensions...."
+        Write-verbose "Removing AfterDeploymentTasks extention AfterDeploymentTasks"
         Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "AfterDeploymentTasks" -Force
         Write-Verbose "Updating VM Tags"
         $TagsTable.Add('Description', $Description)

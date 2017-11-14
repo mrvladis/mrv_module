@@ -1,4 +1,37 @@
-# Define function to check current time against specified range
+<#
+.Synopsis
+Function to check current time against specified range
+.Description
+Function to check current time against specified range
+
+Prerequisites - Azure and AzureRM Modules.
+
+	Limitations
+	----------
+
+
+	Change Log
+	----------
+	v.1.0.0.0		- Initial Version
+
+	Backlog
+	--------
+    #Add ability to verify runing Time by VM Reagional Location
+
+	Output
+	--------
+    Boolean True - if time match.
+    Boolean False - if time do not match.
+
+Syntax: Function has the following parameters:
+
+ .Parameter TimeRange
+Time range in the format "StartTime->EndTime"
+
+ .Example
+Test-MRVPowerScheduleEntry -TimeRange "15:00->18->00"
+
+#>
 function Test-MRVPowerScheduleEntry
 {
     param(

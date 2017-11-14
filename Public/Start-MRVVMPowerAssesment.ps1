@@ -151,7 +151,6 @@ Function Start-MRVVMPowerAssesment
         {
             Write-Verbose "Patching Tag found. Checking if it is time for patching.."
             $PatchingTagValue = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like "Schedule"}).Value
-
             If ($PatchingTagValue.IndexOf('/') -gt 0)
             {
                 $PatchingDates = $PatchingTagValue.Substring(0, $PatchingTagValue.IndexOf('/'))
