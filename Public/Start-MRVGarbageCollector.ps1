@@ -51,10 +51,18 @@ Function Start-MRVGarbageCollector
                 {
                     If ($(get-date) -ge $(get-date -Year $killdate.Split('-')[0] -Month $killdate.Split('-')[1] -Day $killdate.Split('-')[2] -Hour $(if ($killdate.Split('-')[3] -eq $null) {'00'} else {$killdate.Split('-')[3]}) -Minute $(if ($killdate.Split('-')[4] -eq $null) {'00'} else {$killdate.Split('-')[4]})))
                     {
-                        Write-Verbose "Resource [$($Resource.Name)] KillDate [$killdate] falling before today date [$(get-date)]. Addinf it to the list for deletion."
+                        Write-Verbose "Resource [$($Resource.Name)] KillDate [$killdate] falling before today date [$(get-date)]. Adding it to the list for deletion."
                         $ResourcesToDelete += $Resource
                     }
+                    else
+                    {
+                        Write-Verbose "Resource [$($Resource.Name)] KillDate [$killdate] is after the  [$(get-date)].  SKipping this resource Deletion."
+                    }
                 }
+            }
+            else
+            {
+                Write-Verbose "KillDate Value [$killdate]  does not fall under current Garbage Collection"
             }
 
         }
@@ -84,9 +92,9 @@ Function Start-MRVGarbageCollector
                     }
                 }
                 $jobParams = @{
-                    'ScriptBlock'          = $scriptBlock
-                    'ArgumentList'         = @($Resource, $Simulate, $Connection, $SubscriptionName)
-                    'Name'                 = [string]$jobname
+                    'ScriptBlock'  = $scriptBlock
+                    'ArgumentList' = @($Resource, $Simulate, $Connection, $SubscriptionName)
+                    'Name'         = [string]$jobname
                 }
                 Start-Job @jobParams
             }
