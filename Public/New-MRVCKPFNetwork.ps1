@@ -124,7 +124,7 @@ Function New-MRVCKPFNetwork
     catch
     {
         $keepalive = $_.Exception.Response
-        Write-Host "It looks like session has expired. Please get a new header with Get-LBECKPFAuthSID" -ForegroundColor Red
+        Write-Host "It looks like session has expired. Please get a new header with Get-MRVCKPFAuthSID" -ForegroundColor Red
         return $false
     }
 
