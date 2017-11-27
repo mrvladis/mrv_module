@@ -42,7 +42,7 @@ Function Start-MRVVMPowerAssesment
     $WeekOfMonth = [math]::Floor(((Get-Date).Day - 1) / 7 + 1)
     #$Patching_Schedule = "23:00->03:00"
     $PatchingTagName = "PatchingSchedule"
-    $DayNumber = $Days.IndexOf($DayToday.ToString())
+    $DayNumber = $Days.IndexOf($DayToday.ToString()) + 1
     Write-Verbose "Today is $DayToday and week number [$WeekOfMonth]"
     # Get a list of all virtual machines in subscription
     $VMList = Get-AzureRmVM
