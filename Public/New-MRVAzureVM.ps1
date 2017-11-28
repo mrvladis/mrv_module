@@ -743,10 +743,12 @@ Function New-MRVAzureVM
     Write-Verbose "Deployment started at [$time_start]"
     Write-Verbose 'Loading Azure Modules'
     Write-Verbose 'Please Wait...'
-    if ($verbose)
+    $ISVervbose = $false
+    if ($VerbosePreference -like 'Continue')
     {
-        Write-Output "Runing in Verbose "
+        Write-Output "Runing in Verbose. Switching Off to load modules... "
         $VerbosePreference = 'SilentlyContinue'
+        $ISVervbose = $true
     }
 
     If (!(Import-MRVModule 'Azure').Result)
@@ -762,8 +764,9 @@ Function New-MRVAzureVM
             }
         }
     }
-    if ($verbose)
+    if ($ISVervbose)
     {
+        Write-Output "We were runing in Verbose. Switching back on "
         $VerbosePreference = 'Continue'
     }
     Write-Verbose "Azure Modules have been loaded sucessfully."
