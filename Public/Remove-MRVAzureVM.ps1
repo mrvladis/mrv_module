@@ -41,7 +41,7 @@ Function Remove-MRVAzureVM
         [Parameter(Mandatory = $true)]
         [String]
         $ResourceGroupName,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $false)]
         [Int]
         $TimeOut = 300,
         [Parameter (Mandatory = $false)]
