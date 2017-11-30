@@ -41,6 +41,9 @@ Function Remove-MRVAzureVM
         [Parameter(Mandatory = $true)]
         [String]
         $ResourceGroupName,
+        [Parameter(Mandatory = $true)]
+        [Int]
+        $TimeOut = 300,
         [Parameter (Mandatory = $false)]
         [switch]
         $Simulate
@@ -104,13 +107,41 @@ Function Remove-MRVAzureVM
         }
 
         Write-Verbose "Removing VM"
-        $vm | Remove-AzureRmVM -Force
+        $VMDeleteResult = $vm | Remove-AzureRmVM -Force
+        If ($VMDeleteResult.Status -ne 'Succeeded')
+        {
+            Write-Error "VM [$($vm.Name)] deletion has failed woth the following status [$($VMDeleteResult.Status)] and error [$($VMDeleteResult.Error)]"
+            return $false
+        }
+        Start-MRVWait -AprxDur 10 -Wait_Activity "Wait for backend to be updated with VM deletion"
         Write-Verbose "Removing VM Interfaces"
         foreach ($Interface in $VM.NetworkProfile.NetworkInterfaces)
         {
-            Remove-AzureRmResource -ResourceId $Interface.Id -Force
-        }
+            $i = 0
+            $IsRemoved = $false
+            While (!$IsRemoved)
+            {
+                $i ++
+                if ($i -gt $TimeOut)
+                {
+                    Write-Error "Timeout reached [$i]. Exiting."
+                    return $false
+                }
+                Start-Sleep 1
+                Write-Verbose "Tryin to remove iInterface. Attempt [$i]"
+                try
+                {
+                    Remove-AzureRmResource -ResourceId $Interface.Id -Force | Out-Null
+                }
+                catch
+                {
+                    continue
+                }
+                Write-Verbose "Interface removed"
+                $IsRemoved = $true
+            }
 
+        }
         If ($vm.StorageProfile.OSDisk.ManagedDisk -eq $null)
         {
             Write-verbose "We have VHDs on Storage Account"
@@ -118,8 +149,50 @@ Function Remove-MRVAzureVM
             $osDiskContainerName = $osDiskUri.Split('/')[-2]
             Write-Verbose "Trying to remove VHD for OS disk"
             $osDiskStorageAcct = Get-AzureRmStorageAccount | where { $_.StorageAccountName -eq $osDiskUri.Split('/')[2].Split('.')[0] }
-            $osDiskStorageAcct | Remove-AzureStorageBlob -Container $osDiskContainerName -Blob $osDiskUri.Split('/')[-1]
-            $osDiskStorageAcct | Get-AzureStorageBlob -Container $osDiskContainerName -Blob "$($vm.Name)*.status" | Remove-AzureStorageBlob
+            $i = 0
+            $IsRemoved = $false
+            While (!$IsRemoved)
+            {
+                if ($i -gt $TimeOut)
+                {
+                    Write-Error "Timeout reached [$i]. Exiting."
+                    return $false
+                }
+                $i ++
+                Start-Sleep 1
+                Write-Verbose "Tryin to remove VHD. Attempt [$i]"
+                try
+                {
+                    $osDiskStorageAcct | Remove-AzureStorageBlob -Container $osDiskContainerName -Blob $osDiskUri.Split('/')[-1]
+                }
+                catch
+                {
+                    continue
+                }
+                Write-Verbose "VHD removed"
+                $IsRemoved = $true
+            }
+            While (!$IsRemoved)
+            {
+                if ($i -gt $TimeOut)
+                {
+                    Write-Error "Timeout reached [$i]. Exiting."
+                    return $false
+                }
+                $i ++
+                Start-Sleep 1
+                Write-Verbose "Tryin to remove VHD Status. Attempt [$i]"
+                try
+                {
+                    $osDiskStorageAcct | Get-AzureStorageBlob -Container $osDiskContainerName -Blob "$($vm.Name)*.status" | Remove-AzureStorageBlob
+                }
+                catch
+                {
+                    continue
+                }
+                Write-Verbose "VHD Status removed"
+                $IsRemoved = $true
+            }
         }
         else
         {
@@ -135,7 +208,29 @@ Function Remove-MRVAzureVM
                 Write-verbose "Removeing Disk [$($disk.Name)]"
                 If ($ManagedDisks)
                 {
-                    Remove-AzureRmResource -ResourceId $disk.ManagedDisk.Id -Force
+                    $i = 0
+                    $IsRemoved = $false
+                    While (!$IsRemoved)
+                    {
+                        if ($i -gt $TimeOut)
+                        {
+                            Write-Error "Timeout reached [$i]. Exiting."
+                            return $false
+                        }
+                        $i ++
+                        Start-Sleep 1
+                        Write-Verbose "Tryin to remove Disk. Attempt [$i]"
+                        try
+                        {
+                            Remove-AzureRmResource -ResourceId $disk.ManagedDisk.Id -Force | Out-Null
+                        }
+                        catch
+                        {
+                            continue
+                        }
+                        Write-Verbose "Disk removed"
+                        $IsRemoved = $true
+                    }
                 }
                 else
                 {

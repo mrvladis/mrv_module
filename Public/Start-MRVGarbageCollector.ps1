@@ -100,10 +100,11 @@ Function Start-MRVGarbageCollector
             }
 
         }
-    }
-    'Storage'
-    {
 
+        'Storage'
+        {
+
+        }
     }
     $MaxWaitSec = 2400
     $WaitingSec = 0

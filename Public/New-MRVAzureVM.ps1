@@ -474,15 +474,9 @@ Function New-MRVAzureVM
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
         [Parameter(ParameterSetName = 'NewVM_NewDataDisks', Mandatory = $false)]
         [Hashtable]
-        $TagsTable = @{"Schedule_Monday" = "7:00->21:00";
-            "Schedule_Tuesday" = "7:00->21:00";
-            "Schedule_Wednesday" = "7:00->21:00";
-            "Schedule_Thursday" = "7:00->21:00";
-            "Schedule_Friday" = "7:00->21:00";
-            "Schedule_Saturday" = "-";
-            "Schedule_Sunday" = "-";
+        $TagsTable = @{
             "AlwaysOFF" = '$false';
-            "AlwaysON" = '$false';
+            "AlwaysON"  = '$false';
         },
 
         [Parameter(ParameterSetName = 'NewVM_ExistingVHD', Mandatory = $false)]
@@ -1253,7 +1247,7 @@ Function New-MRVAzureVM
     $DeploymentTempPath = (New-Item $(join-path $JsonTempFolder $containername) -type directory).FullName + $PathDelimiter
     if ($ScriptRuntimeWin)
     {
-        $storageContext = New-AzureStorageContext -StorageAccountName $JsonStorageAccountName -StorageAccountKey $JsonStorageAccountKey -ErrorAction SilentlyContinue
+        $storageContext = New-AzureStorageContext -StorageAccountName $JsonStorageAccountName -StorageAccountKey "$JsonStorageAccountKey" -ErrorAction SilentlyContinue
 
         If ($storageContext -eq $null)
         {
@@ -1273,7 +1267,7 @@ Function New-MRVAzureVM
     }
     else
     {
-        $containerResult = az storage container create --name $containername --account-name $JsonStorageAccountName  --account-key $JsonStorageAccountKey --output json | ConvertFrom-Json
+        $containerResult = az storage container create --name $containername --account-name $JsonStorageAccountName  --account-key "$JsonStorageAccountKey" --output json | ConvertFrom-Json
     }
     if ($ScriptRuntimeWin)
     {
@@ -1282,7 +1276,7 @@ Function New-MRVAzureVM
     }
     else
     {
-        $token = az storage container generate-sas --name $containername --account-name $JsonStorageAccountName  --account-key $JsonStorageAccountKey --permissions r --start (get-date -Format u (Get-Date).ToUniversalTime().AddMinutes(-1)).Replace(' ', 'T') --expiry (get-date -Format u (Get-Date).ToUniversalTime().AddMinutes($TokenExpiry)).Replace(' ', 'T') --output json | ConvertFrom-Json
+        $token = az storage container generate-sas --name $containername --account-name $JsonStorageAccountName  --account-key "$JsonStorageAccountKey" --permissions r --start (get-date -Format u (Get-Date).ToUniversalTime().AddMinutes(-1)).Replace(' ', 'T') --expiry (get-date -Format u (Get-Date).ToUniversalTime().AddMinutes($TokenExpiry)).Replace(' ', 'T') --output json | ConvertFrom-Json
         if ($token -ne '')
         {
             $token = '?' + $token
@@ -1470,9 +1464,9 @@ Function New-MRVAzureVM
         {
             Write-Verbose "Adding interface number $($count+1)"
             $iface = [pscustomobject][ordered]@{
-                id = "[resourceId('Microsoft.Network/networkInterfaces',parameters('IfaceNames')[$count])]"
+                id         = "[resourceId('Microsoft.Network/networkInterfaces',parameters('IfaceNames')[$count])]"
                 properties	= [pscustomobject][ordered]@{
-                    primary = "false"
+                    primary                     = "false"
                     enableAcceleratedNetworking = $strEnableAcceleratedNetworking
                 }
             }
@@ -1489,9 +1483,9 @@ Function New-MRVAzureVM
     {
         Write-Verbose  'Adding Plan to the Deployment'
         $plan = [pscustomobject][ordered]@{
-            name = "[parameters('imageSku')]"
+            name      = "[parameters('imageSku')]"
             publisher = "[parameters('imagePublisher')]"
-            product = "[parameters('imageOffer')]"
+            product   = "[parameters('imageOffer')]"
         }
         $VMResources | Add-Member -MemberType NoteProperty -Name plan -Value $plan
     }
@@ -1656,7 +1650,7 @@ Function New-MRVAzureVM
         }
         else
         {
-            az storage blob upload --container-name $containername --account-name $JsonStorageAccountName  --account-key $JsonStorageAccountKey --file $($file.FullName) --name $($file.Name) --output json | ConvertFrom-Json
+            az storage blob upload --container-name $containername --account-name $JsonStorageAccountName  --account-key "$JsonStorageAccountKey" --file $($file.FullName) --name $($file.Name) --output json | ConvertFrom-Json
         }
     }
     If ( $Simulate)
@@ -1682,14 +1676,14 @@ Function New-MRVAzureVM
     Write-Verbose  'Deployment status ....'
 
     $EmailBody = [pscustomobject][ordered]@{
-        VMName = $VMname
-        ResourceGroup = $ResourceGroupName
-        Subscription = $SubscriptionName
-        VMSize = $VMSize
-        VMIPaddresses = $VMIPaddresses
-        ImageSKU = $ImageSKU
-        ChangeControl = $ChangeControl
-        Description = $Description
+        VMName          = $VMname
+        ResourceGroup   = $ResourceGroupName
+        Subscription    = $SubscriptionName
+        VMSize          = $VMSize
+        VMIPaddresses   = $VMIPaddresses
+        ImageSKU        = $ImageSKU
+        ChangeControl   = $ChangeControl
+        Description     = $Description
         ExistingVHDUsed = $UseExistingDisk
     }
     $EmailTitle = "VM Provisioning Operation for VM [$VMname] in Resource Group [$ResourceGroupName] completed with status [$($DeploymentSatus.ProvisioningState)]"
