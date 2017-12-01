@@ -109,7 +109,7 @@ Function Start-MRVVMPowerAssesment
             else
             {
                 [array]$Shedule_Array = $ScheduleTag.Split('/')
-                $schedule = $Shedule_Array[$DayNumber]
+                $schedule = $Shedule_Array[$($DayNumber - 1)]
                 If ($schedule -eq $null)
                 {
                     Write-Verbose "[$($VM.Name)]: Not tagged for the [$DayToday]. Skipping this VM."
