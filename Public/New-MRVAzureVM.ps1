@@ -1752,6 +1752,16 @@ Function New-MRVAzureVM
         $TagsTable.Add('ChangeControl', $ChangeControl)
         Update-MRVAzureTag -ResourceName $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName
         $time_end = get-date
+        if ($DoNotCleanup)
+        {
+            Write-Verbose "Skipping Temp folder [$DeploymentTempPath] cleanup"
+        }
+        else
+        {
+            Write-verbose "Cleaning Temp folder [$DeploymentTempPath]"
+            Remove-Item -Path $DeploymentTempPath -Force -Recurse
+        }
+
         Write-Verbose  "Deployment finished at [$time_end]"
         Write-Verbose  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
         return $true
