@@ -107,12 +107,7 @@ Function Remove-MRVAzureVM
         }
 
         Write-Verbose "Removing VM"
-        $VMDeleteResult = $vm | Remove-AzureRmVM -Force
-        If ($VMDeleteResult.Status -ne 'Succeeded')
-        {
-            Write-Error "VM [$($vm.Name)] deletion has failed woth the following status [$($VMDeleteResult.Status)] and error [$($VMDeleteResult.Error)]"
-            return $false
-        }
+        $vm | Remove-AzureRmVM -Force
         Start-MRVWait -AprxDur 10 -Wait_Activity "Wait for backend to be updated with VM deletion"
         Write-Verbose "Removing VM Interfaces"
         foreach ($Interface in $VM.NetworkProfile.NetworkInterfaces)
