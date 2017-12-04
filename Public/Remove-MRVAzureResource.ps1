@@ -46,7 +46,7 @@ Function Remove-MRVAzureVM
             'Disks',
             'NetworkInterfaces'
         )]
-        $Resource,
+        $ResourceType,
         [Parameter(Mandatory = $false)]
         [Int]
         $TimeOut = 300,
@@ -62,15 +62,15 @@ Function Remove-MRVAzureVM
     {
         'virtualMachines'
         {
-            $ResourceType = 'Microsoft.Compute/virtualMachines'
+            $ResourceTypeFull = 'Microsoft.Compute/virtualMachines'
         }
         'Disks'
         {
-            $ResourceType = 'Microsoft.Compute/disks'
+            $ResourceTypeFull = 'Microsoft.Compute/disks'
         }
         'NetworkInterfaces'
         {
-            $ResourceType = 'Microsoft.Network/networkInterfaces'
+            $ResourceTypeFull = 'Microsoft.Network/networkInterfaces'
         }
     }
     $time_start = get-date

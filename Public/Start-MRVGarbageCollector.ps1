@@ -14,7 +14,7 @@ Function Start-MRVGarbageCollector
             'Disks',
             'NetworkInterfaces'
         )]
-        $Resource,
+        $ResourceType,
 
         [Parameter (Mandatory = $false)]
         [switch]
@@ -29,23 +29,23 @@ Function Start-MRVGarbageCollector
     {
         Write-Error "Can't select Subscription [$SubscriptionName]"
     }
-    switch ($Resource)
+    switch ($ResourceType)
     {
         'virtualMachines'
         {
-            $ResourceType = 'Microsoft.Compute/virtualMachines'
+            $ResourceTypeFull = 'Microsoft.Compute/virtualMachines'
         }
         'Disks'
         {
-            $ResourceType = 'Microsoft.Compute/disks'
+            $ResourceTypeFull = 'Microsoft.Compute/disks'
         }
         'NetworkInterfaces'
         {
-            $ResourceType = 'Microsoft.Network/networkInterfaces'
+            $ResourceTypeFull = 'Microsoft.Network/networkInterfaces'
         }
     }
     $time_start = get-date
-    $Resources = Find-AzureRmResource -ResourceType $ResourceType
+    $Resources = Find-AzureRmResource -ResourceType $ResourceTypeFull
     $ResourcesToDelete = @()
     Foreach ($Resource in $Resources)
     {
@@ -79,7 +79,7 @@ Function Start-MRVGarbageCollector
     }
     Write-Verbose "We have [$($ResourcesToDelete.Count)] to delete"
 
-    switch ($Resource)
+    switch ($ResourceType)
     {
         'Microsoft.Compute/virtualMachines'
         {
