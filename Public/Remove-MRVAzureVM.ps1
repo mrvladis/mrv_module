@@ -117,7 +117,7 @@ Function Remove-MRVAzureVM
             While (!$IsRemoved)
             {
                 $i ++
-                if ($i -lt $TimeOut)
+                if ($i -gt $TimeOut)
                 {
                     Write-Error "Timeout reached [$i]. Exiting."
                     return $false
@@ -148,7 +148,7 @@ Function Remove-MRVAzureVM
             $IsRemoved = $false
             While (!$IsRemoved)
             {
-                if ($i -lt $TimeOut)
+                if ($i -gt $TimeOut)
                 {
                     Write-Error "Timeout reached [$i]. Exiting."
                     return $false
@@ -169,7 +169,7 @@ Function Remove-MRVAzureVM
             }
             While (!$IsRemoved)
             {
-                if ($i -lt $TimeOut)
+                if ($i -gt $TimeOut)
                 {
                     Write-Error "Timeout reached [$i]. Exiting."
                     return $false
@@ -207,7 +207,7 @@ Function Remove-MRVAzureVM
                     $IsRemoved = $false
                     While (!$IsRemoved)
                     {
-                        if ($i -lt $TimeOut)
+                        if ($i -gt $TimeOut)
                         {
                             Write-Error "Timeout reached [$i]. Exiting."
                             return $false
