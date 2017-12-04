@@ -81,7 +81,7 @@ Function Start-MRVGarbageCollector
 
     switch ($ResourceType)
     {
-        'Microsoft.Compute/virtualMachines'
+        'virtualMachines'
         {
             Foreach ($Resource in $ResourcesToDelete)
             {
@@ -111,11 +111,11 @@ Function Start-MRVGarbageCollector
             }
 
         }
-        'Microsoft.Compute/disks'
+        'disks'
         {
 
         }
-        'Microsoft.Network/networkInterfaces'
+        'NetworkInterfaces'
         {
 
         }
