@@ -81,10 +81,10 @@ Function Update-MRVAzureTag
         [String]
         $ResourceType = $null,
 
-        [Parameter(ParameterSetName = 'OneTag', Mandatory = $true)]
-        [Parameter(ParameterSetName = 'TableTag', Mandatory = $true)]
+        [Parameter(ParameterSetName = 'OneTag', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'TableTag', Mandatory = $false)]
         [String]
-        $SubscriptionName,
+        $SubscriptionName = '',
 
         [Parameter(ParameterSetName = 'TableTag', Mandatory = $true)]
         [Hashtable]
@@ -102,15 +102,22 @@ Function Update-MRVAzureTag
         [switch]
         $EnforceTag
     )
-    $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
-    If (!$Subscription.Result)
+    If ($SubscriptionName -ne '')
     {
-        Write-Error 'Make sure that you have access and logged in to Azure'
-        return
+        $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
+        If (!$Subscription.Result)
+        {
+            Write-Error 'Make sure that you have access and logged in to Azure'
+            return
+        }
+        else
+        {
+            Write-Verbose 'Subscription has been selected successfully.'
+        }
     }
     else
     {
-        Write-Verbose 'Subscription has been selected successfully.'
+        Write-Verbose "Subscription Selection has been skipped as no subscription provided."
     }
     Write-Host "Looking for the Resource with the name:[$ResourceName]"
     If ($ResourceGroupName -eq $null)
@@ -122,7 +129,7 @@ Function Update-MRVAzureTag
         $Resources = Get-AzureRmResource  | where-object {($_.ResourceName -like $ResourceName) -and ($_.ResourceGroupName -like $ResourceGroupName)}
     }
     If ($Resources.Count -gt 1)
-    {   
+    {
         Write-Error "More than one resource with name [$ResourceName] has been found. Use -verbose to see them."
         Write-Verbose "$Resources"
     }
@@ -146,14 +153,14 @@ Function Update-MRVAzureTag
             if ($Tags.Keys -contains $TagName)
             {
                 Write-Verbose "Tag with the name:[$TagName] have been found."
-                if ($Tags[$TagName] -eq $TagValue)
+                if (($Tags.GetEnumerator() | Where-Object {$_.Key -like $TagName}).value -eq $TagValue)
                 {
                     Write-Verbose "Tag [$TagName] already has value [$TagValue]. Skipping... "
                 }
                 else
                 {
-                    Write-Verbose "Updating the value to:[$TagValue]"
-                    $Tags[$TagName] = $TagValue
+                    Write-Verbose "Updating the value from [$(($Tags.GetEnumerator() | Where-Object {$_.Key -like $TagName}).value)] to:[$TagValue]"
+                    $Tags[($Tags.GetEnumerator() | Where-Object {$_.Key -like $TagName}).Key] = $TagValue
                 }
             }
             else
@@ -184,7 +191,7 @@ Function Update-MRVAzureTag
             }
         }
     }
-    Write-host "Trying to update the VM with the new tags.."
+    Write-host "Trying to update the Resource with the new tags.."
     try
     {
         $Resources | Set-AzureRmResource -Tag $Tags -Force

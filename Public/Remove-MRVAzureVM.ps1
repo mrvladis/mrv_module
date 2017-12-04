@@ -46,7 +46,10 @@ Function Remove-MRVAzureVM
         $TimeOut = 300,
         [Parameter (Mandatory = $false)]
         [switch]
-        $Simulate
+        $Simulate,
+        [Parameter(Mandatory = $false)]
+        [String]
+        $KillTagName = 'KillDate'
 
     )
     $ManagedDisks = $false
@@ -81,6 +84,8 @@ Function Remove-MRVAzureVM
 
     Write-Verbose "Identifying Boot Diagnostics Information"
     $vmResource = Get-AzureRmResource -ResourceName $VMname -ResourceGroupName $ResourceGroupName -ResourceType 'Microsoft.Compute/virtualMachines'
+    $Tags = $vmResource.Tags
+    $KillDate = ($Tags.GetEnumerator() | Where-Object {$_.Key -like $KillTagName}).value
     $DiagStorageAccount = [regex]::match($vm.DiagnosticsProfile.bootDiagnostics.storageUri, '^http[s]?://(.+?)\.').groups[1].value
     $DiagContainerName = ('bootdiagnostics-{0}-{1}' -f $vm.Name.ToLower().Replace('-', '').Substring(0, 9), $vmResource.Properties.vmId)
     Write-Verbose "We have identified [$DiagStorageAccount] as Storage account name."
@@ -112,6 +117,9 @@ Function Remove-MRVAzureVM
         Write-Verbose "Removing VM Interfaces"
         foreach ($Interface in $VM.NetworkProfile.NetworkInterfaces)
         {
+            Write-Verbose "Updating Interfaces KillDate with VM Kill date [$KillDate]"
+            $InterfaceResource = Get-AzureRmResource -Id $Interface.Id
+            Update-MRVAzureTag -ResourceName $InterfaceResource.Name -ResourceGroupName $InterfaceResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
             $i = 0
             $IsRemoved = $false
             While (!$IsRemoved)
@@ -192,8 +200,36 @@ Function Remove-MRVAzureVM
         else
         {
             Write-Verbose "VM Uses Managed Disks"
-            Remove-AzureRmResource -ResourceId $vm.StorageProfile.OSDisk.ManagedDisk.Id -Force
             $ManagedDisks = $true
+            Write-Verbose "Updating OS Disks KillDate with VM Kill date [$KillDate]"
+            $DiskResource = Get-AzureRmResource  -Id $vm.StorageProfile.OSDisk.ManagedDisk.Id
+            Update-MRVAzureTag -ResourceName $DiskResource.Name -ResourceGroupName $DiskResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
+            Write-verbose "Removing OS Disk"
+            $i = 0
+            $IsRemoved = $false
+            While (!$IsRemoved)
+            {
+                if ($i -gt $TimeOut)
+                {
+                    Write-Error "Timeout reached [$i]. Exiting."
+                    return $false
+                }
+                $i ++
+                Start-Sleep 1
+                Write-Verbose "Tryin to remove Disk. Attempt [$i]"
+                try
+                {
+                    Remove-AzureRmResource -ResourceId $vm.StorageProfile.OSDisk.ManagedDisk.Id -Force
+                }
+                catch
+                {
+                    continue
+                }
+                Write-Verbose "Disk removed"
+                $IsRemoved = $true
+            }
+
+
         }
         if ($vm.StorageProfile.DataDisks.Count -gt 0)
         {
@@ -203,6 +239,9 @@ Function Remove-MRVAzureVM
                 Write-verbose "Removeing Disk [$($disk.Name)]"
                 If ($ManagedDisks)
                 {
+                    Write-Verbose "Updating Data Disks KillDate with VM Kill date [$KillDate]"
+                    $DiskResource = Get-AzureRmResource  -Id $disk.ManagedDisk.Id
+                    Update-MRVAzureTag -ResourceName $DiskResource.Name -ResourceGroupName $DiskResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
                     $i = 0
                     $IsRemoved = $false
                     While (!$IsRemoved)
