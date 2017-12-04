@@ -46,7 +46,7 @@ Function Remove-MRVAzureVM
             'Disks',
             'NetworkInterfaces'
         )]
-        $ResourceType,
+        $Resource,
         [Parameter(Mandatory = $false)]
         [Int]
         $TimeOut = 300,

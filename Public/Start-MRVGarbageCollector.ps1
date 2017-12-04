@@ -14,7 +14,7 @@ Function Start-MRVGarbageCollector
             'Disks',
             'NetworkInterfaces'
         )]
-        $ResourceType,
+        $Resource,
 
         [Parameter (Mandatory = $false)]
         [switch]
@@ -29,7 +29,7 @@ Function Start-MRVGarbageCollector
     {
         Write-Error "Can't select Subscription [$SubscriptionName]"
     }
-    switch ($ResourceType)
+    switch ($Resource)
     {
         'virtualMachines'
         {
@@ -79,7 +79,7 @@ Function Start-MRVGarbageCollector
     }
     Write-Verbose "We have [$($ResourcesToDelete.Count)] to delete"
 
-    switch ($ResourceType)
+    switch ($Resource)
     {
         'Microsoft.Compute/virtualMachines'
         {
