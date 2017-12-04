@@ -130,7 +130,7 @@ Function Remove-MRVAzureVM
                 if ($i -gt $TimeOut)
                 {
                     Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
-                    return $false
+                    break
                 }
 
                 try
@@ -215,7 +215,7 @@ Function Remove-MRVAzureVM
                 if ($i -gt $TimeOut)
                 {
                     Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
-                    return $false
+                    break
                 }
                 try
                 {
@@ -252,7 +252,7 @@ Function Remove-MRVAzureVM
                         if ($i -gt $TimeOut)
                         {
                             Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
-                            return $false
+                            break
                         }
 
                         try
