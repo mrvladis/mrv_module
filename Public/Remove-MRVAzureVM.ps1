@@ -100,6 +100,10 @@ Function Remove-MRVAzureVM
     }
     if (!$Simulate)
     {
+        Write-Verbose "Removing VM"
+        Write-Verbose "Timeout for each operation would be [$TimeOut] seconds"
+        $vm | Remove-AzureRmVM -Force
+        Start-MRVWait -AprxDur 10 -Wait_Activity "Wait for backend to be updated with VM deletion"
         Write-Verbose "Trying to delete Boot Diagnostic Data"
         try
         {
@@ -111,9 +115,6 @@ Function Remove-MRVAzureVM
             Write-Error "Can't delete boot diagnostics container storage account."
         }
 
-        Write-Verbose "Removing VM"
-        $vm | Remove-AzureRmVM -Force
-        Start-MRVWait -AprxDur 10 -Wait_Activity "Wait for backend to be updated with VM deletion"
         Write-Verbose "Removing VM Interfaces"
         foreach ($Interface in $VM.NetworkProfile.NetworkInterfaces)
         {

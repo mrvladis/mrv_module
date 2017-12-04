@@ -14,10 +14,12 @@ Function Start-MRVGarbageCollector
             'Storage'
         )]
         $ResourceName,
+
         [Parameter (Mandatory = $false)]
         [switch]
         $Simulate,
-        [Parameter(Mandatory = $false)]
+
+        [Parameter (Mandatory = $false)]
         [Int]
         $TimeOut = 300
     )
@@ -79,8 +81,9 @@ Function Start-MRVGarbageCollector
             Foreach ($Resource in $ResourcesToDelete)
             {
                 Write-Verbose "Deleting VM [$($Resource.Name)] in ResourceGroup [$($Resource.ResourceGroupName)]"
+                Write-Verbose "Timeout for each operation would be [$TimeOut] seconds"
                 $scriptBlock = {
-                    Param($Resource, $Simulate, $Connection, $SubscriptionName)
+                    Param($Resource, $Simulate, $Connection, $SubscriptionName, $TimeOut)
                     Write-Verbose "VM ID [$($VM.Id)]"
                     Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
                     Import-Module mrv_module
@@ -96,7 +99,7 @@ Function Start-MRVGarbageCollector
                 }
                 $jobParams = @{
                     'ScriptBlock'  = $scriptBlock
-                    'ArgumentList' = @($Resource, $Simulate, $Connection, $SubscriptionName)
+                    'ArgumentList' = @($Resource, $Simulate, $Connection, $SubscriptionName, $TimeOut)
                     'Name'         = [string]$jobname
                 }
                 Start-Job @jobParams
