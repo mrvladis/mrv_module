@@ -16,7 +16,10 @@ Function Start-MRVGarbageCollector
         $ResourceName,
         [Parameter (Mandatory = $false)]
         [switch]
-        $Simulate
+        $Simulate,
+        [Parameter(Mandatory = $false)]
+        [Int]
+        $TimeOut = 300
     )
     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
     if (!$($Subscription.result))
@@ -84,7 +87,7 @@ Function Start-MRVGarbageCollector
                     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
                     If ($Subscription.result)
                     {
-                        Remove-MRVAzureVM -VMname $Resource.Name -ResourceGroupName $Resource.ResourceGroupName -Verbose -Simulate:$Simulate
+                        Remove-MRVAzureVM -VMname $Resource.Name -ResourceGroupName $Resource.ResourceGroupName -Verbose -Simulate:$Simulate -TimeOut $TimeOut
                     }
                     else
                     {
