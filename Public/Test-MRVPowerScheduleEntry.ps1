@@ -40,13 +40,16 @@ function Test-MRVPowerScheduleEntry
         $TimeRange,
         [Parameter(Mandatory = $false)]
         [switch]
-        $Patching
+        $Patching,
+        [Parameter(Mandatory = $false)]
+        [int]
+        $Timezone = 0
     )
     # Initialize variables
     $rangeStart, $rangeEnd, $parsedDay = $null
     $UTCTime = (Get-Date).ToUniversalTime()
     $oToTimeZone = [System.TimeZoneInfo]::FindSystemTimeZoneById("GMT Standard Time")
-    $currentTime = [System.TimeZoneInfo]::ConvertTime($UTCTime, $oToTimeZone)
+    $currentTime = ([System.TimeZoneInfo]::ConvertTime($UTCTime, $oToTimeZone)).addHours($Timezone)
     $midnight = $currentTime.AddDays(1).Date
     try
     {

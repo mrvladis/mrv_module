@@ -42,6 +42,7 @@ Function Start-MRVVMPowerAssesment
     $WeekOfMonth = [math]::Floor(((Get-Date).Day - 1) / 7 + 1)
     #$Patching_Schedule = "23:00->03:00"
     $PatchingTagName = "PatchingSchedule"
+    $TimeZoneTageName = "TimeZone"
     $DayNumber = $Days.IndexOf($DayToday.ToString()) + 1
     Write-Verbose "Today is $DayToday and week number [$WeekOfMonth]"
     # Get a list of all virtual machines in subscription
@@ -60,6 +61,23 @@ Function Start-MRVVMPowerAssesment
             # No direct or inherited tag. Skip this VM.
             Write-Verbose "[$($VM.Name)]: Does not have any tags for start / stop management. Skipping this VM."
             continue
+        }
+        if ($VMtags.ContainsKey($TimeZoneTageName))
+        {
+            Write-Verbose "TimeZone Tag found. Let's check how many hours to shift"
+            Try
+            {
+                [int]$Timezone = ($VMtags.GetEnumerator() | Where-Object {$_.Key -like $TimeZoneTageName}).Value
+            }
+            catch
+            {
+                Write-Error "Can't convert [($VMtags.GetEnumerator() | Where-Object {$_.Key -like $TimeZoneTageName}).Value] to integer. Please update Timezone to be whole number of hours to shift. "
+                [int]$Timezone = 0
+            }
+        }
+        else
+        {
+            [int]$Timezone = 0
         }
         $ifAlwaysOn = $false
         $ifAlwaysOff = $false
@@ -125,7 +143,7 @@ Function Start-MRVVMPowerAssesment
             foreach ($entry in $timeRangeList)
             {
                 Write-Verbose "Processing Entry [$entry]"
-                if (Test-MRVPowerScheduleEntry -TimeRange $entry)
+                if (Test-MRVPowerScheduleEntry -TimeRange $entry -Timezone $Timezone)
                 {
                     Write-Verbose "Based on Time Entry [$entry] VM Schedule is matched."
                     $IsScheduleMatched = $true
@@ -163,7 +181,7 @@ Function Start-MRVVMPowerAssesment
                 #  if (($PatchingDay -eq $DayToday.ToString().substring(0, 3).ToUpper()) -or ($PatchingDay -eq (get-date).AddDays(-1).DayOfWeek.ToString().substring(0, 3).ToUpper()))
 
                 Write-Verbose "It looks like currently Patching. Checking the Time" # or After Patching Day
-                if ((Test-MRVPowerScheduleEntry -TimeRange $Patching_Schedule -Patching))
+                if ((Test-MRVPowerScheduleEntry -TimeRange $Patching_Schedule -Patching -Timezone $Timezone))
                 {
                     Write-Verbose "It looks like currently patching time, so we need to ensure that VM is up."
                     $IsScheduleMatched = $true
