@@ -120,7 +120,24 @@ Function Remove-MRVAzureVM
         {
             Write-Verbose "Updating Interfaces KillDate with VM Kill date [$KillDate]"
             $InterfaceResource = Get-AzureRmResource -Id $Interface.Id
-            Update-MRVAzureTag -ResourceName $InterfaceResource.Name -ResourceGroupName $InterfaceResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
+            $IsKillDateDueUpdate = $false
+            if ($InterfaceResource.Tags.Keys -contains $KillTagName)
+            {
+                if (($InterfaceResource.Tags.GetEnumerator() | Where-Object {$_.Key -like $KillTagName}).value -like 'none')
+                {
+                    Write-Verbose "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
+                    $IsKillDateDueUpdate = $true
+                }
+            }
+            else
+            {
+                Write-Verbose "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
+                $IsKillDateDueUpdate = $true
+            }
+            if ($IsKillDateDueUpdate)
+            {
+                Update-MRVAzureTag -ResourceName $InterfaceResource.Name -ResourceGroupName $InterfaceResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
+            }
             $i = 0
             $IsRemoved = $false
             While (!$IsRemoved)
@@ -204,7 +221,24 @@ Function Remove-MRVAzureVM
             $ManagedDisks = $true
             Write-Verbose "Updating OS Disks KillDate with VM Kill date [$KillDate]"
             $DiskResource = Get-AzureRmResource  -Id $vm.StorageProfile.OSDisk.ManagedDisk.Id
-            Update-MRVAzureTag -ResourceName $DiskResource.Name -ResourceGroupName $DiskResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
+            $IsKillDateDueUpdate = $false
+            if ($DiskResource.Tags.Keys -contains $KillTagName)
+            {
+                if (($DiskResource.Tags.GetEnumerator() | Where-Object {$_.Key -like $KillTagName}).value -like 'none')
+                {
+                    Write-Verbose "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
+                    $IsKillDateDueUpdate = $true
+                }
+            }
+            else
+            {
+                Write-Verbose "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
+                $IsKillDateDueUpdate = $true
+            }
+            if ($IsKillDateDueUpdate)
+            {
+                Update-MRVAzureTag -ResourceName $DiskResource.Name -ResourceGroupName $DiskResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
+            }
             Write-verbose "Removing OS Disk"
             $i = 0
             $IsRemoved = $false
@@ -242,7 +276,24 @@ Function Remove-MRVAzureVM
                 {
                     Write-Verbose "Updating Data Disks KillDate with VM Kill date [$KillDate]"
                     $DiskResource = Get-AzureRmResource  -Id $disk.ManagedDisk.Id
-                    Update-MRVAzureTag -ResourceName $DiskResource.Name -ResourceGroupName $DiskResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
+                    $IsKillDateDueUpdate = $false
+                    if ($DiskResource.Tags.Keys -contains $KillTagName)
+                    {
+                        if (($DiskResource.Tags.GetEnumerator() | Where-Object {$_.Key -like $KillTagName}).value -like 'none')
+                        {
+                            Write-Verbose "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
+                            $IsKillDateDueUpdate = $true
+                        }
+                    }
+                    else
+                    {
+                        Write-Verbose "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
+                        $IsKillDateDueUpdate = $true
+                    }
+                    if ($IsKillDateDueUpdate)
+                    {
+                        Update-MRVAzureTag -ResourceName $DiskResource.Name -ResourceGroupName $DiskResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
+                    }
                     $i = 0
                     $IsRemoved = $false
                     While (!$IsRemoved)

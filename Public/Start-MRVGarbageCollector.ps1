@@ -11,9 +11,10 @@ Function Start-MRVGarbageCollector
 
         [Parameter (Mandatory = $true)]
         [ValidateSet('virtualMachines',
-            'Storage'
+            'Disks',
+            'NetworkInterfaces'
         )]
-        $ResourceName,
+        $ResourceType,
 
         [Parameter (Mandatory = $false)]
         [switch]
@@ -28,15 +29,19 @@ Function Start-MRVGarbageCollector
     {
         Write-Error "Can't select Subscription [$SubscriptionName]"
     }
-    switch ($ResourceName)
+    switch ($ResourceType)
     {
         'virtualMachines'
         {
             $ResourceType = 'Microsoft.Compute/virtualMachines'
         }
-        'Storage'
+        'Disks'
         {
-
+            $ResourceType = 'Microsoft.Compute/disks'
+        }
+        'NetworkInterfaces'
+        {
+            $ResourceType = 'Microsoft.Network/networkInterfaces'
         }
     }
     $time_start = get-date
@@ -74,9 +79,9 @@ Function Start-MRVGarbageCollector
     }
     Write-Verbose "We have [$($ResourcesToDelete.Count)] to delete"
 
-    switch ($ResourceName)
+    switch ($ResourceType)
     {
-        'virtualMachines'
+        'Microsoft.Compute/virtualMachines'
         {
             Foreach ($Resource in $ResourcesToDelete)
             {
@@ -106,8 +111,11 @@ Function Start-MRVGarbageCollector
             }
 
         }
+        'Microsoft.Compute/disks'
+        {
 
-        'Storage'
+        }
+        'Microsoft.Network/networkInterfaces'
         {
 
         }
@@ -121,7 +129,7 @@ Function Start-MRVGarbageCollector
         $WaitingSec ++
         if ($WaitingSec % 60 -eq 0)
         {
-            Write-verbose "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$currentTime] for Subscription [$SubscriptionName]"
+            Write-verbose "Waiting for [$($WaitingSec /60)] minutes. [$JobsRCount] still runing. Runbook started at [$time_start] for Subscription [$SubscriptionName]"
         }
         If ($WaitingSec -le $MaxWaitSec)
         {
