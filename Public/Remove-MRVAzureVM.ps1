@@ -125,13 +125,14 @@ Function Remove-MRVAzureVM
             While (!$IsRemoved)
             {
                 $i ++
-                if ($i -gt $TimeOut)
-                {
-                    Write-Error "Timeout reached [$i]. Exiting."
-                    return $false
-                }
                 Start-Sleep 1
                 Write-Verbose "Tryin to remove iInterface. Attempt [$i]"
+                if ($i -gt $TimeOut)
+                {
+                    Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
+                    return $false
+                }
+
                 try
                 {
                     Remove-AzureRmResource -ResourceId $Interface.Id -Force | Out-Null
@@ -143,7 +144,6 @@ Function Remove-MRVAzureVM
                 Write-Verbose "Interface removed"
                 $IsRemoved = $true
             }
-
         }
         If ($vm.StorageProfile.OSDisk.ManagedDisk -eq $null)
         {
@@ -209,14 +209,14 @@ Function Remove-MRVAzureVM
             $IsRemoved = $false
             While (!$IsRemoved)
             {
-                if ($i -gt $TimeOut)
-                {
-                    Write-Error "Timeout reached [$i]. Exiting."
-                    return $false
-                }
                 $i ++
                 Start-Sleep 1
                 Write-Verbose "Tryin to remove Disk. Attempt [$i]"
+                if ($i -gt $TimeOut)
+                {
+                    Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
+                    return $false
+                }
                 try
                 {
                     Remove-AzureRmResource -ResourceId $vm.StorageProfile.OSDisk.ManagedDisk.Id -Force
@@ -246,14 +246,15 @@ Function Remove-MRVAzureVM
                     $IsRemoved = $false
                     While (!$IsRemoved)
                     {
-                        if ($i -gt $TimeOut)
-                        {
-                            Write-Error "Timeout reached [$i]. Exiting."
-                            return $false
-                        }
                         $i ++
                         Start-Sleep 1
                         Write-Verbose "Tryin to remove Disk. Attempt [$i]"
+                        if ($i -gt $TimeOut)
+                        {
+                            Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
+                            return $false
+                        }
+
                         try
                         {
                             Remove-AzureRmResource -ResourceId $disk.ManagedDisk.Id -Force | Out-Null
