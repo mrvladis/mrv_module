@@ -30,49 +30,144 @@ Name of Resource Group forthe Virtual Machine that need to be deleted.
 
 
 #>
-Function Remove-MRVAzureVM
+Function Remove-MRVAzureResource
 {
     [CmdletBinding()]
     Param
     (
-        [Parameter(Mandatory = $true)]
+        [Parameter(ParameterSetName = 'ResourceByName', Mandatory = $true)]
         [String]
         $ResourceName,
-        [Parameter(Mandatory = $true)]
+
+        [Parameter(ParameterSetName = 'ResourceByName', Mandatory = $true)]
         [String]
         $ResourceGroupName,
-        [Parameter (Mandatory = $true)]
+
+        [Parameter(ParameterSetName = 'ResourceByName', Mandatory = $true)]
         [ValidateSet('virtualMachines',
             'Disks',
             'NetworkInterfaces'
         )]
         $ResourceType,
-        [Parameter(Mandatory = $false)]
+
+        [Parameter(ParameterSetName = 'ResourceByObject', Mandatory = $true)]
+        [pscustomobject]
+        $Resource,
+
+        [Parameter(ParameterSetName = 'ResourceByName', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'ResourceByObject', Mandatory = $false)]
         [Int]
         $TimeOut = 300,
-        [Parameter (Mandatory = $false)]
+
+        [Parameter(ParameterSetName = 'ResourceByName', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'ResourceByObject', Mandatory = $false)]
         [switch]
         $Simulate,
-        [Parameter(Mandatory = $false)]
+
+        [Parameter(ParameterSetName = 'ResourceByName', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'ResourceByObject', Mandatory = $false)]
         [String]
         $KillTagName = 'KillDate'
 
     )
-    switch ($ResourceType)
+    $time_start = get-date
+    $IsToBeDeleted = $False
+    switch ($PsCmdlet.ParameterSetName)
     {
-        'virtualMachines'
+        'ResourceByName'
         {
-            $ResourceTypeFull = 'Microsoft.Compute/virtualMachines'
+            switch ($ResourceType)
+            {
+                'virtualMachines'
+                {
+                    $ResourceTypeFull = 'Microsoft.Compute/virtualMachines'
+                }
+                'Disks'
+                {
+                    $ResourceTypeFull = 'Microsoft.Compute/disks'
+                }
+                'NetworkInterfaces'
+                {
+                    $ResourceTypeFull = 'Microsoft.Network/networkInterfaces'
+                }
+            }
+            try
+            {
+                $Resource = Get-AzureRmResource -ResourceName $ResourceName -ResourceGroupName $ResourceGroupName -ResourceType $ResourceTypeFull
+            }
+            catch
+            {
+                Write-Error "Can't find resource with Name [$ResourceName] Resource Group Name [$ResourceGroupName] of Resource Type [$ResourceTypeFull]"
+                return $false
+            }
+            if ($Resource -eq $null)
+            {
+                Write-Error "Can't find resource with Name [$ResourceName] Resource Group Name [$ResourceGroupName] of Resource Type [$ResourceTypeFull]"
+                return $false
+            }
         }
-        'Disks'
+        'ResourceByObject'
         {
-            $ResourceTypeFull = 'Microsoft.Compute/disks'
-        }
-        'NetworkInterfaces'
-        {
-            $ResourceTypeFull = 'Microsoft.Network/networkInterfaces'
+            $ResourceTypeFull = $Resource.ResourceType
+            $Resource = Get-AzureRmResource -ResourceId $Resource.ResourceId
         }
     }
-    $time_start = get-date
+    Write-Verbose "Validating resource of [$ResourceTypeFull] type for deletion"
+    switch ($ResourceTypeFull)
+    {
+        'Microsoft.Compute/virtualMachines'
+        {
+            Write-Error "To remove VM - Please use Remove-MRVAzureVM instead."
+            return $false
+        }
+        'Microsoft.Compute/disks'
+        {
+            Write-Verbose "Preparing to delete resource [$($resource.Name)]"
+            if ($resource.Properties.diskState -like 'Unattached')
+            {
+                Write-Verbose "Resource is not in use. Scheduling for deletion..."
+                $IsToBeDeleted = $true
+            }
 
+        }
+        'Microsoft.Network/networkInterfaces'
+        {
+            Write-Verbose "Preparing to delete resource [$($resource.Name)]"
+            $Iface = $Resource | Get-AzureRmNetworkInterface
+            If ($Iface.VirtualMachine -eq $null)
+            {
+                Write-Verbose "Resource is not in use. Scheduling for deletion..."
+                $IsToBeDeleted = $true
+
+            }
+        }
+    }
+
+    If ($IsToBeDeleted)
+    {
+        try
+        {
+            if ($Simulate)
+            {
+                Write-Verbose "Runing in Simulation. Skipping Deletion"
+            }
+            else
+            {
+                Write-Verbose "Trying to Delete"
+                Remove-AzureRmResource -ResourceId $resource.ResourceId -Force | Out-Null
+            }
+
+        }
+        catch
+        {
+            Write-error "Removal of the $ResourceTypeFull [$($resource.ResourceName)] has failed."
+            return $false
+        }
+        return $true
+    }
+    else
+    {
+        Write-Error "$ResourceTypeFull [$($resource.ResourceName)] is in use."
+        return $false
+    }
 }

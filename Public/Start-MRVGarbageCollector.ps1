@@ -85,7 +85,7 @@ Function Start-MRVGarbageCollector
         {
             Foreach ($Resource in $ResourcesToDelete)
             {
-                Write-Verbose "Deleting VM [$($Resource.Name)] in ResourceGroup [$($Resource.ResourceGroupName)]"
+                Write-Verbose "Deleting $ResourceType [$($Resource.Name)] in ResourceGroup [$($Resource.ResourceGroupName)]"
                 Write-Verbose "Timeout for each operation would be [$TimeOut] seconds"
                 $scriptBlock = {
                     Param($Resource, $Simulate, $Connection, $SubscriptionName, $TimeOut)
@@ -95,7 +95,7 @@ Function Start-MRVGarbageCollector
                     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
                     If ($Subscription.result)
                     {
-                        Remove-MRVAzureVM -VMname $Resource.Name -ResourceGroupName $Resource.ResourceGroupName -Verbose -Simulate:$Simulate -TimeOut $TimeOut
+                        Remove-MRVAzureVM -VMname $Resource.Name -ResourceGroupName $Resource.ResourceGroupName -TimeOut $TimeOut -Simulate:$Simulate -Verbose
                     }
                     else
                     {
@@ -111,13 +111,43 @@ Function Start-MRVGarbageCollector
             }
 
         }
-        'disks'
+        'Disks'
         {
-
+            Write-verbose "Processing $ResourceType"
+            Foreach ($Resource in $ResourcesToDelete)
+            {
+                Write-Verbose "Deleting $ResourceType [$($Resource.Name)] in ResourceGroup [$($Resource.ResourceGroupName)]"
+                $scriptBlock = {
+                    Param($Resource, $Simulate, $Connection, $SubscriptionName, $TimeOut)
+                    Write-Verbose "VM ID [$($VM.Id)]"
+                    Add-AzureRMAccount -ServicePrincipal -Tenant $Connection.TenantID -ApplicationID $Connection.ApplicationID -CertificateThumbprint $Connection.CertificateThumbprint
+                    Import-Module mrv_module
+                    $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
+                    If ($Subscription.result)
+                    {
+                        Remove-MRVAzureResource -Resource $resource -Simulate:$Simulate -Verbose
+                    }
+                    else
+                    {
+                        Write-Error "Failed to select Subscription [$SubscriptionName] due to [$($Subscription.reason)]"
+                    }
+                }
+                $jobParams = @{
+                    'ScriptBlock'  = $scriptBlock
+                    'ArgumentList' = @($Resource, $Simulate, $Connection, $SubscriptionName, $TimeOut)
+                    'Name'         = [string]$jobname
+                }
+                Start-Job @jobParams
+            }
         }
         'NetworkInterfaces'
         {
-
+            Write-verbose "Processing $ResourceType"
+            Foreach ($Resource in $ResourcesToDelete)
+            {
+                Write-Verbose "Deleting $ResourceType [$($Resource.Name)] in ResourceGroup [$($Resource.ResourceGroupName)]"
+                Remove-MRVAzureResource -Resource $resource -Simulate:$Simulate -Verbose
+            }
         }
     }
     $MaxWaitSec = 2400
