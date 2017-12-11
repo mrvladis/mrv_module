@@ -1096,14 +1096,14 @@ Function New-MRVAzureVM
         $DiagStorageAccount.Error
     }
     $DiagStorageResourceGroup = $DiagStorageAccount.StorageResourceGroup
-    $DiagStorageAccountName = $DiagStorageAccount.StorageAccountName
+    $DiagStorageAccountName = $DiagStorageAccount.StorageAccountName.Replace(' ', '')
     Write-Verbose  'Virtual Macine will be deployed with the following parameters:'
     Write-Verbose  "VNetResourceGroup: [$VNetResourceGroup]"
     Write-Verbose  "VNetName: [$VNetName]"
     Write-Verbose  "Location: [$location]"
     Write-Verbose  "SubNetNames: [$SubNetNames]"
     Write-Verbose  "FaultDomainCount [$FaultDomainCount] UpdateDomainCount [$UpdateDomainCount]"
-    Write-Verbose  "StorageDiagAccountName: $DiagStorageAccountName"
+    Write-Verbose  "StorageDiagAccountName: [$DiagStorageAccountName]"
     If ($imagePublisher -ne 'MicrosoftWindowsServer')
     {
         Write-Verbose  'Custom image has been specified. Checking if it exist....'
@@ -1741,12 +1741,22 @@ Function New-MRVAzureVM
                 Write-Verbose "Provisioning After Deployment Tasks Completed Sucessfully"
             }
         }
-        Start-MRVWait -AprxDur 60 -Wait_Activity "Waiting before removal of joindomain extension...."
-        Write-verbose "Removing joindomain extention"
-        Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "joindomain" -Force
-        Start-MRVWait -AprxDur 60 -Wait_Activity "Waiting before removal of extensions...."
-        Write-verbose "Removing AfterDeploymentTasks extention AfterDeploymentTasks"
-        Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "AfterDeploymentTasks" -Force
+        if (-not $StandaloneVM)
+        {
+            if ($UseExistingDisk -or ($osType -ne 'Windows') <#-or $SkipExtensions #>)
+            {
+                Write-Verbose  "Extentions Removal"
+            }
+            else
+            {
+                Start-MRVWait -AprxDur 60 -Wait_Activity "Waiting before removal of joindomain extension...."
+                Write-verbose "Removing joindomain extention"
+                Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "joindomain" -Force
+                Start-MRVWait -AprxDur 60 -Wait_Activity "Waiting before removal of extensions...."
+                Write-verbose "Removing AfterDeploymentTasks extention AfterDeploymentTasks"
+                Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "AfterDeploymentTasks" -Force
+            }
+        }
         Write-Verbose "Updating VM Tags"
         $TagsTable.Add('Description', $Description)
         $TagsTable.Add('ChangeControl', $ChangeControl)

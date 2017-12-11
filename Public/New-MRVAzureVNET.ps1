@@ -196,15 +196,6 @@ Function New-MRVAzureVNET
     $JSONParametersFile = 'Azure_VNET_Parameters.json'
     $VNETName = $VNETName.ToUpper()
     $ResourceGroupName = $ResourceGroupName.ToUpper()
-    $RGPrefix = $Prefix_Main + '-' + $Prefix_RG + '-'
-    $ResourceGroupNametmp = $ResourceGroupName.Substring(0, $ResourceGroupName.lastIndexOf('-'))
-    Write-Host 'Running Pre-Checks' -BackgroundColor DarkCyan
-    <# If ($ResourceGroupNametmp.Substring(0, $ResourceGroupNametmp.lastIndexOf('-') + 1) -notlike $RGPrefix)
-    {
-        Write-Error  "$ResourceGroupName Does not meet the naming rules. Should start with: $RGPrefix"
-        return $falses
-    } #>
-    #Validation of the input need to be added.
     Write-Host "Input validation has not yet being defined! Deployment can fail due to incorrect input." -ForegroundColor Yellow
     #Check to validate VNET existence to be added here.
     $LocationCode = (Get-MRVLocationCode $location).LocationCode
@@ -270,12 +261,13 @@ Function New-MRVAzureVNET
     }
     Write-Host  'Populating URLS for the Base Template' -ForegroundColor DarkGreen
     $JsonTemplatesUrl = $JSONUrlBase + $containername + '/'
-    Write-Host  "Main Temlate URL will be $JsonUrlMain Reading Main Template to be deployed"
-    Write-Host  'Preparing main template...' -BackgroundColor DarkCyan
     $OutFileName = $JSONBaseTemplateFile.Substring(0, $JSONBaseTemplateFile.IndexOf('.')) + $containername + '.json'
     $JSONParametersOutFileName = $JSONParametersFile.Substring(0, $JSONParametersFile.IndexOf('.')) + $OutFileName
-    $JsonUrlMain = $JSONUrlBase + $containername + '/' + $OutFileName + $token
-    $JSONParametersUrl = $JSONUrlBase + $containername + '/' + $JSONParametersOutFileName + $token
+    $JsonUrlMain = $JsonTemplatesUrl + $OutFileName + $token
+    $JSONParametersUrl = $JsonTemplatesUrl + $JSONParametersOutFileName + $token
+
+    Write-Host  "Main Temlate URL will be $JsonUrlMain Reading Main Template to be deployed"
+    Write-Host  'Preparing main template...' -BackgroundColor DarkCyan
 
     $InputTemplate = $null
     $InputTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONBaseTemplateFile
