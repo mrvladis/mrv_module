@@ -93,6 +93,7 @@ Function Get-MRVAzureModuleStorageAccount
     $JsonTagValue = 'JSONStorage'
     $DiagDescription = 'Resource to host Azure Diagnostic Data. Created by New-MRVAzureVM Function.'
     $JsonDescription = 'Resource to host Json ARM Templates During Provisioning. Created by New-MRVAzureVM Function.'
+    $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName
     $Tags = @{$TagName = $DiagTagValue; Description = $DiagDescription}
     $LocationCode = (Get-MRVLocationCode $location).LocationCode
     If ($AccountType -eq 'JSON')
@@ -142,7 +143,7 @@ Function Get-MRVAzureModuleStorageAccount
         {
             Write-Verbose "Storage account with name [$StorageAccountName] already exist."
             $AccountID ++
-            $StorageAccountName = $($Prefix_Main + 'stlrs' + $LocationCode + $AccountType + $AccountID).ToLower()
+            $StorageAccountName = $($Prefix_Main + 'stlrs' + $LocationCode + $AccountType + $AccountID + $Subscription.AzureContext.Subscription.Id).ToLower().Substring(0, 23)
         }
         If ($AccountID -eq 10)
         {

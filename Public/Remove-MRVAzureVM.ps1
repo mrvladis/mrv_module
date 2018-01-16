@@ -82,14 +82,14 @@ Function Remove-MRVAzureVM
         return $false
     }
 
-    Write-Verbose "Identifying Boot Diagnostics Information"
+    Write-Output "Identifying Boot Diagnostics Information"
     $vmResource = Get-AzureRmResource -ResourceName $VMname -ResourceGroupName $ResourceGroupName -ResourceType 'Microsoft.Compute/virtualMachines'
     $Tags = $vmResource.Tags
     $KillDate = ($Tags.GetEnumerator() | Where-Object {$_.Key -like $KillTagName}).value
     $DiagStorageAccount = [regex]::match($vm.DiagnosticsProfile.bootDiagnostics.storageUri, '^http[s]?://(.+?)\.').groups[1].value
     $DiagContainerName = ('bootdiagnostics-{0}-{1}' -f $vm.Name.ToLower().Replace('-', '').Substring(0, 9), $vmResource.Properties.vmId)
-    Write-Verbose "We have identified [$DiagStorageAccount] as Storage account name."
-    Write-Verbose "We have identified [$DiagContainerName] as container name."
+    Write-Output "We have identified [$DiagStorageAccount] as Storage account name."
+    Write-Output "We have identified [$DiagContainerName] as container name."
     try
     {
         $DiagStorageAccountResourceGroup = (Get-AzureRmStorageAccount | where { $_.StorageAccountName -eq $DiagStorageAccount }).ResourceGroupName
@@ -100,14 +100,14 @@ Function Remove-MRVAzureVM
     }
     if (!$Simulate)
     {
-        Write-Verbose "Removing VM"
-        Write-Verbose "Timeout for each operation would be [$TimeOut] seconds"
+        Write-Output "Removing VM"
+        Write-Output "Timeout for each operation would be [$TimeOut] seconds"
         $vm | Remove-AzureRmVM -Force
         Start-MRVWait -AprxDur 10 -Wait_Activity "Wait for backend to be updated with VM deletion"
-        Write-Verbose "Trying to delete Boot Diagnostic Data"
+        Write-Output "Trying to delete Boot Diagnostic Data"
         try
         {
-            Write-verbose "We have Container [$DiagContainerName] Diag Storage Account [$DiagStorageAccount] ResourceGroupName [$DiagStorageAccountResourceGroup] "
+            Write-Output "We have Container [$DiagContainerName] Diag Storage Account [$DiagStorageAccount] ResourceGroupName [$DiagStorageAccountResourceGroup] "
             Get-AzureRmStorageAccount -ResourceGroupName $DiagStorageAccountResourceGroup -Name $DiagStorageAccount | Get-AzureStorageContainer | where { $_.Name -eq $DiagContainerName } | Remove-AzureStorageContainer -Force
         }
         catch
@@ -115,23 +115,23 @@ Function Remove-MRVAzureVM
             Write-Error "Can't delete boot diagnostics container storage account."
         }
 
-        Write-Verbose "Removing VM Interfaces"
+        Write-Output "Removing VM Interfaces"
         foreach ($Interface in $VM.NetworkProfile.NetworkInterfaces)
         {
-            Write-Verbose "Updating Interfaces KillDate with VM Kill date [$KillDate]"
+            Write-Output "Updating Interfaces KillDate with VM Kill date [$KillDate]"
             $InterfaceResource = Get-AzureRmResource -Id $Interface.Id
             $IsKillDateDueUpdate = $false
             if ($InterfaceResource.Tags.Keys -contains $KillTagName)
             {
                 if (($InterfaceResource.Tags.GetEnumerator() | Where-Object {$_.Key -like $KillTagName}).value -like 'none')
                 {
-                    Write-Verbose "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
+                    Write-Output "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
                     $IsKillDateDueUpdate = $true
                 }
             }
             else
             {
-                Write-Verbose "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
+                Write-Output "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
                 $IsKillDateDueUpdate = $true
             }
             if ($IsKillDateDueUpdate)
@@ -144,7 +144,7 @@ Function Remove-MRVAzureVM
             {
                 $i ++
                 Start-Sleep 1
-                Write-Verbose "Tryin to remove iInterface. Attempt [$i]"
+                Write-Output "Tryin to remove iInterface. Attempt [$i]"
                 if ($i -gt $TimeOut)
                 {
                     Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
@@ -159,16 +159,16 @@ Function Remove-MRVAzureVM
                 {
                     continue
                 }
-                Write-Verbose "Interface removed"
+                Write-Output "Interface removed"
                 $IsRemoved = $true
             }
         }
         If ($vm.StorageProfile.OSDisk.ManagedDisk -eq $null)
         {
-            Write-verbose "We have VHDs on Storage Account"
+            Write-Output "We have VHDs on Storage Account"
             $osDiskUri = $vm.StorageProfile.OSDisk.Vhd.Uri
             $osDiskContainerName = $osDiskUri.Split('/')[-2]
-            Write-Verbose "Trying to remove VHD for OS disk"
+            Write-Output "Trying to remove VHD for OS disk"
             $osDiskStorageAcct = Get-AzureRmStorageAccount | where { $_.StorageAccountName -eq $osDiskUri.Split('/')[2].Split('.')[0] }
             $i = 0
             $IsRemoved = $false
@@ -181,7 +181,7 @@ Function Remove-MRVAzureVM
                 }
                 $i ++
                 Start-Sleep 1
-                Write-Verbose "Tryin to remove VHD. Attempt [$i]"
+                Write-Output "Tryin to remove VHD. Attempt [$i]"
                 try
                 {
                     $osDiskStorageAcct | Remove-AzureStorageBlob -Container $osDiskContainerName -Blob $osDiskUri.Split('/')[-1]
@@ -190,7 +190,7 @@ Function Remove-MRVAzureVM
                 {
                     continue
                 }
-                Write-Verbose "VHD removed"
+                Write-Output "VHD removed"
                 $IsRemoved = $true
             }
             While (!$IsRemoved)
@@ -202,7 +202,7 @@ Function Remove-MRVAzureVM
                 }
                 $i ++
                 Start-Sleep 1
-                Write-Verbose "Tryin to remove VHD Status. Attempt [$i]"
+                Write-Output "Tryin to remove VHD Status. Attempt [$i]"
                 try
                 {
                     $osDiskStorageAcct | Get-AzureStorageBlob -Container $osDiskContainerName -Blob "$($vm.Name)*.status" | Remove-AzureStorageBlob
@@ -211,42 +211,42 @@ Function Remove-MRVAzureVM
                 {
                     continue
                 }
-                Write-Verbose "VHD Status removed"
+                Write-Output "VHD Status removed"
                 $IsRemoved = $true
             }
         }
         else
         {
-            Write-Verbose "VM Uses Managed Disks"
+            Write-Output "VM Uses Managed Disks"
             $ManagedDisks = $true
-            Write-Verbose "Updating OS Disks KillDate with VM Kill date [$KillDate]"
+            Write-Output "Updating OS Disks KillDate with VM Kill date [$KillDate]"
             $DiskResource = Get-AzureRmResource  -Id $vm.StorageProfile.OSDisk.ManagedDisk.Id
             $IsKillDateDueUpdate = $false
             if ($DiskResource.Tags.Keys -contains $KillTagName)
             {
                 if (($DiskResource.Tags.GetEnumerator() | Where-Object {$_.Key -like $KillTagName}).value -like 'none')
                 {
-                    Write-Verbose "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
+                    Write-Output "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
                     $IsKillDateDueUpdate = $true
                 }
             }
             else
             {
-                Write-Verbose "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
+                Write-Output "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
                 $IsKillDateDueUpdate = $true
             }
             if ($IsKillDateDueUpdate)
             {
                 Update-MRVAzureTag -ResourceName $DiskResource.Name -ResourceGroupName $DiskResource.ResourceGroupName -TagName $KillTagName -TagValue $KillDate -EnforceTag -Verbose
             }
-            Write-verbose "Removing OS Disk"
+            Write-Output "Removing OS Disk"
             $i = 0
             $IsRemoved = $false
             While (!$IsRemoved)
             {
                 $i ++
                 Start-Sleep 1
-                Write-Verbose "Tryin to remove Disk. Attempt [$i]"
+                Write-Output "Tryin to remove Disk. Attempt [$i]"
                 if ($i -gt $TimeOut)
                 {
                     Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
@@ -260,7 +260,7 @@ Function Remove-MRVAzureVM
                 {
                     continue
                 }
-                Write-Verbose "Disk removed"
+                Write-Output "Disk removed"
                 $IsRemoved = $true
             }
 
@@ -268,26 +268,26 @@ Function Remove-MRVAzureVM
         }
         if ($vm.StorageProfile.DataDisks.Count -gt 0)
         {
-            Write-Verbose -Message 'Removing data disks...'
+            Write-Output -Message 'Removing data disks...'
             foreach ($disk in $vm.StorageProfile.DataDisks)
             {
-                Write-verbose "Removeing Disk [$($disk.Name)]"
+                Write-Output "Removeing Disk [$($disk.Name)]"
                 If ($ManagedDisks)
                 {
-                    Write-Verbose "Updating Data Disks KillDate with VM Kill date [$KillDate]"
+                    Write-Output "Updating Data Disks KillDate with VM Kill date [$KillDate]"
                     $DiskResource = Get-AzureRmResource  -Id $disk.ManagedDisk.Id
                     $IsKillDateDueUpdate = $false
                     if ($DiskResource.Tags.Keys -contains $KillTagName)
                     {
                         if (($DiskResource.Tags.GetEnumerator() | Where-Object {$_.Key -like $KillTagName}).value -like 'none')
                         {
-                            Write-Verbose "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
+                            Write-Output "Tag [$TagName] has value [$TagValue]. We need to update it with [$KillDate]"
                             $IsKillDateDueUpdate = $true
                         }
                     }
                     else
                     {
-                        Write-Verbose "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
+                        Write-Output "Tag [$TagName] has not being found. We need to add it with value [$KillDate]"
                         $IsKillDateDueUpdate = $true
                     }
                     if ($IsKillDateDueUpdate)
@@ -300,7 +300,7 @@ Function Remove-MRVAzureVM
                     {
                         $i ++
                         Start-Sleep 1
-                        Write-Verbose "Tryin to remove Disk. Attempt [$i]"
+                        Write-Output "Tryin to remove Disk. Attempt [$i]"
                         if ($i -gt $TimeOut)
                         {
                             Write-Error "Counter [$i] has reached Timeout [$TimeOut]. Exiting."
@@ -315,7 +315,7 @@ Function Remove-MRVAzureVM
                         {
                             continue
                         }
-                        Write-Verbose "Disk removed"
+                        Write-Output "Disk removed"
                         $IsRemoved = $true
                     }
                 }
@@ -329,6 +329,8 @@ Function Remove-MRVAzureVM
     }
     else
     {
-        Write-verbose "Skipping removal as runing in Simulation Mode"
+        Write-Output "Skipping removal as runing in Simulation Mode"
+        return $false
     }
+    return $true
 }

@@ -25,8 +25,7 @@ Function Set-MRVVMPowerState
     }
     catch
     {
-        #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8030 -EntryType Error -Message "Failed to get VM with Name [$($VirtualMachine.Name)] from the RG [$($VirtualMachine.ResourceGroupName)]" -Category 1
-        #Write-EventLog -LogName "Application" -Source "$EventAppName" -EventID 8031 -EntryType Error -Message $Error -Category 1
+        Write-Error  "Failed to get VM with Name [$($VirtualMachine.Name)] from the RG [$($VirtualMachine.ResourceGroupName)]"
         return
     }
 

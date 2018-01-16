@@ -248,7 +248,8 @@
             "file": {
               "enabled": true
             }
-          }
+          },
+          "keySource": "Microsoft.Storage"
         }
       },
       "type": "Microsoft.Storage/storageAccounts"
