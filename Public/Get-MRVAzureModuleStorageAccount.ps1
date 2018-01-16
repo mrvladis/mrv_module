@@ -128,17 +128,18 @@ Function Get-MRVAzureModuleStorageAccount
             Write-Error "You can either create it before script execution or do not specify this parameter. Script will find account or create a new one."
         }
     }
+    Write-Output "StorageAccountName [$StorageAccountName]"
     If ($StorageAccount.Count -gt 1)
     {
-        Write-Host "It has been found [$($StorageAccount.count)] storage accounts with [$AccountType] Tags" -ForegroundColor Green
+        Write-Output "It has been found [$($StorageAccount.count)] storage accounts with [$AccountType] Tags"
         $StorageAccount = $StorageAccount[0]
-        Write-Host "Selecting the first one with the name [$($StorageAccount.StorageAccountName)]"
+        Write-Output "Selecting the first one with the name [$($StorageAccount.StorageAccountName)]"
     }
     elseif ($StorageAccount.Count -eq 0)
     {
-        Write-Host "There is no [$AccountType] storage account found" -ForegroundColor Yellow
+        Write-Output "There is no [$AccountType] storage account found"
         $AccountID = 1
-        $StorageAccountName = $($Prefix_Main + 'lrs' + $LocationCode + $AccountType + $AccountID).ToLower()
+        $StorageAccountName = $($Prefix_Main + 'lrs' + $LocationCode + $AccountType + $AccountID + $Subscription.AzureContext.Subscription.Id).ToLower().Substring(0, 23)
         While ((Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageAccountName) -and $AccountID -lt 10)
         {
             Write-Output "Storage account with name [$StorageAccountName] already exist."

@@ -1095,7 +1095,6 @@ Function New-MRVAzureVM
         Write-Error "Failed to retrieve Diagnostic Storage account."
         $DiagStorageAccount.Error
     }
-    $v
     $DiagStorageResourceGroup = $DiagStorageAccount.StorageResourceGroup
     $DiagStorageAccountName = $DiagStorageAccount.StorageAccountName.Replace(' ', '')
     Write-Verbose  'Virtual Macine will be deployed with the following parameters:'
