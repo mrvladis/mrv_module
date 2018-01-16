@@ -139,12 +139,12 @@ Function Get-MRVAzureModuleStorageAccount
     {
         Write-Output "There is no [$AccountType] storage account found"
         $AccountID = 1
-        $StorageAccountName = $($Prefix_Main + 'lrs' + $LocationCode + $AccountType + $AccountID + $Subscription.AzureContext.Subscription.Id).ToLower().Substring(0, 23)
+        $StorageAccountName = $($Prefix_Main + 'lrs' + $LocationCode + $AccountType + $AccountID + $Subscription.AzureContext.Subscription.Id).Replace('-', '').ToLower().Substring(0, 23)
         While ((Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageAccountName) -and $AccountID -lt 10)
         {
             Write-Output "Storage account with name [$StorageAccountName] already exist."
             $AccountID ++
-            $StorageAccountName = $($Prefix_Main + 'stlrs' + $LocationCode + $AccountType + $AccountID + $Subscription.AzureContext.Subscription.Id).ToLower().Substring(0, 23)
+            $StorageAccountName = $($Prefix_Main + 'lrs' + $LocationCode + $AccountType + $AccountID + $Subscription.AzureContext.Subscription.Id).Replace('-', '').ToLower().Substring(0, 23)
         }
         If ($AccountID -eq 10)
         {
