@@ -40,18 +40,3 @@
 | Test-MRVTCPPort|Script that can be used to validate connectivoty to specific port.|
 | Test-MRVVMExist|Script that can be used to validate VM existance.|
 
-## Start / Stop Automation
-Start / Stop Automation uses Tag with name "Schedule" to operate.
-Tag define the schedule for the VM to be up and running over the week. Time is defined for each day and divided by ‘/’ (MON/TUE/WED/THU/SAT/SUN). 
-Time frame should have “Start Time” and “Stop Time” divided by “->”. 
-Each day can have as many timeframes as needed. 
-Time frames are separated with semicolon “;”.
-If the there is no need for VM to run on this day tag can be set to ‘-’. It need to have a value.
-For example “8:00->19:00” (Start at 8 am stop at 7 pm), “->20:00” (“Start” 00:01 this day. It will keep running. Stop at 8 pm), “7:10->” (Start at 7:10 am and no Stop this day. Will run till 23:59), “08:00->14:00;19:00->22:00” 
-Start Stop time should be with the interval 30 minutes.  
-Possible values: 
-“Start Time->Stop Time”
-“Start Time1->Stop Time1;Start Time2->Stop Time2”
-“-”
-"7:00->21:00/7:00->21:00/7:00->21:00/7:00->21:00/7:00->21:00/-/-"
-"9:00->12:00;15:00->19:00/7:00->21:00/7:00->21:00/7:00->21:00/7:00->21:00/-/-"

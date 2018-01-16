@@ -109,7 +109,7 @@ Function Get-MRVAzureModuleStorageAccount
     $Tags = @{$TagName = $TagValue; Description = $Description}
     If ($StorageAccountName -eq 'notdefined')
     {
-        Write-verbose "Trying to find [$AccountType] Storage account in location [$location]"
+        Write-Output "Trying to find [$AccountType] Storage account in location [$location]"
         $StorageAccount = Get-AzureRmStorageAccount  |
             Where-Object -FilterScript {
             $_.Tags.Keys -contains $TagName} |
@@ -141,7 +141,7 @@ Function Get-MRVAzureModuleStorageAccount
         $StorageAccountName = $($Prefix_Main + 'lrs' + $LocationCode + $AccountType + $AccountID).ToLower()
         While ((Get-AzureRmStorageAccount | Where-Object StorageAccountName -eq $StorageAccountName) -and $AccountID -lt 10)
         {
-            Write-Verbose "Storage account with name [$StorageAccountName] already exist."
+            Write-Output "Storage account with name [$StorageAccountName] already exist."
             $AccountID ++
             $StorageAccountName = $($Prefix_Main + 'stlrs' + $LocationCode + $AccountType + $AccountID + $Subscription.AzureContext.Subscription.Id).ToLower().Substring(0, 23)
         }
@@ -153,17 +153,17 @@ Function Get-MRVAzureModuleStorageAccount
         $RGName = $($Prefix_Main + '-' + $Prefix_RG + '-' + $AccountType + $LocationCode).ToUpper()
         If (! (Get-AzureRmResourceGroup -Name $RGName -ErrorAction SilentlyContinue))
         {
-            Write-verbose "Going to create Resource Group for [$AccountType] Storage account with the name [$RGName]"
+            Write-Output "Going to create Resource Group for [$AccountType] Storage account with the name [$RGName]"
             New-AzureRmResourceGroup $RGName -Location $location
         }
         else
         {
-            Write-verbose "Resource Group for [$AccountType] Storage account with the name [$RGName] already exist"
+            Write-Output "Resource Group for [$AccountType] Storage account with the name [$RGName] already exist"
         }
-        Write-verbose "Trying to create  [$AccountType] Storage account with the name [$StorageAccountName]"
+        Write-Output "Trying to create  [$AccountType] Storage account with the name [$StorageAccountName]"
         $StorageAccount = New-AzureRmStorageAccount -Name $StorageAccountName -ResourceGroupName $RGName -Location $location -SkuName Standard_LRS
         Start-MRVWait -AprxDur 30 -Wait_Activity  "Waiting for ARM sync"
-        Write-verbose "Setting tags on  [$AccountType] Storage account with the name [$StorageAccountName]"
+        Write-Output "Setting tags on  [$AccountType] Storage account with the name [$StorageAccountName]"
         Update-MRVAzureTag -ResourceName $StorageAccountName -ResourceGroupName $RGName -SubscriptionName $SubscriptionName -TagsTable $Tags -EnforceTag
     }
     $StorageResourceGroup = $StorageAccount.ResourceGroupName
