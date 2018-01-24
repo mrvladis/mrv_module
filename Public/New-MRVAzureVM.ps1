@@ -740,27 +740,28 @@ Function New-MRVAzureVM
     $ISVervbose = $false
     if ($VerbosePreference -like 'Continue')
     {
-        Write-Output "Runing in Verbose. Switching Off to load modules... "
+        Write-Verbose "Runing in Verbose. Switching Off to load modules..."
         $VerbosePreference = 'SilentlyContinue'
         $ISVervbose = $true
     }
-
     If (!(Import-MRVModule 'Azure').Result)
     {
         Write-Verbose "Can't load Azure module. Let's check if AzureRM can be loaded"
-        If (!(Import-MRVModule 'AzureRM').Result)
+        If (!(Import-MRVModule 'AzureRM.Compute').Result)
         {
             Write-Verbose "Can't load AzureRM module. Let's check if AzureRM.NetCore can be loaded"
-            If (!(Import-MRVModule 'AzureRM.NetCore').Result)
+            If (!(Import-MRVModule 'AzureRM.Compute.Netcore').Result)
             {
                 Write-Error "Can't load Azure modules. Please make sure that you have Installed all the modules"
-                return $false
+
+                $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+                return $Result
             }
         }
     }
     if ($ISVervbose)
     {
-        Write-Output "We were runing in Verbose. Switching back on "
+        Write-Verbose "We were runing in Verbose. Switching back on "
         $VerbosePreference = 'Continue'
     }
     Write-Verbose "Azure Modules have been loaded sucessfully."
@@ -805,7 +806,8 @@ Function New-MRVAzureVM
                     if (!(Test-MRVCredentials -DomainCreds $DomainAdminCreds))
                     {
                         Write-Error "Can't validate credentials!"
-                        return $false
+                        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+  return $Result
                     }
                 }
                 else
@@ -817,7 +819,8 @@ Function New-MRVAzureVM
             catch
             {
                 Write-Error "Can't continue without Credentials"
-                return $false
+                $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+  return $Result
             }
         }
     } #>
@@ -832,7 +835,8 @@ Function New-MRVAzureVM
         else
         {
             Write-Error "Can't create Folder to store temporary Deployment templates [$JsonTempFolder]. Exiting....."
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
     }
 
@@ -841,7 +845,8 @@ Function New-MRVAzureVM
         if (-not (Test-Path $SourceXML))
         {
             Write-Error "Can't find file name specified as SourceXML! PLease check if [$SourceXML] exist!"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
     }
     Write-Verbose  "Provisional operation has been started with timestamp $timestamp"
@@ -849,7 +854,8 @@ Function New-MRVAzureVM
     If (!$Subscription.Result)
     {
         Write-Error  'Make sure that you have access and logged in to Azure'
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     else
     {
@@ -898,7 +904,8 @@ Function New-MRVAzureVM
     {
         Write-Error "OMS Can't be configured with current Parameters."
         Write-Error "Please use WorkSpaceId with WorkSpaceKey or WorkSpaceName only"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     If ($WorkSpaceId -ne 'notdefined')
     {
@@ -906,13 +913,15 @@ Function New-MRVAzureVM
         {
             Write-Error "You can't use both WorkSpaceName and WorkSpaceId parameters."
             Write-Error "Please use WorkSpaceId with WorkSpaceKey or WorkSpaceName only"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         If ($WorkSpaceKey -eq 'notdefined')
         {
             Write-Error "You can't use WorkSpaceId without WorkSpaceKey parameters."
             Write-Error "Please use WorkSpaceId with WorkSpaceKey or WorkSpaceName only"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         $OMSbyId = $true
     }
@@ -932,7 +941,8 @@ Function New-MRVAzureVM
         If ($SourceVM.IndexOf('.') -ge 0)
         {
             Write-Error "$SourceVM Virtual machine name (Short name, eg MRV-SH-MGMT-001 ) should be provided."
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         else
         {
@@ -948,18 +958,21 @@ Function New-MRVAzureVM
         If ($VMnametmp.Substring(0, $VMnametmp.lastIndexOf('-') + 1) -notlike $VMPrefix)
         {
             Write-Error "$VMname Does not meet the naming rules. Should start with: $VMPrefix"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
     }
     If ($VMname.Length -gt 15)
     {
         Write-Error "$VMname Can't be longer then 15 characters"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     If ($ResourceGroupNametmp.Substring(0, $ResourceGroupNametmp.lastIndexOf('-') + 1) -notlike $RGPrefix)
     {
         Write-Error  "$ResourceGroupName Does not meet the naming rules. Should start with: $RGPrefix"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     if ($SourceVM -ne '')
     {
@@ -967,7 +980,8 @@ Function New-MRVAzureVM
         if (!(Test-MRVVMExist $SourceVM).Result)
         {
             Write-Error  "Source VM $SourceVM Does Not Exist!"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         else
         {
@@ -981,7 +995,8 @@ Function New-MRVAzureVM
             else
             {
                 Write-Error  "Source VM $SourceVM is not accessible to make remote connection. Check VM is up and port $WINRMPort is opened!"
-                return $false
+                $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+                return $Result
             }
         }
     }
@@ -991,12 +1006,14 @@ Function New-MRVAzureVM
     if ($VMIPaddresses.Count -ne $IfaceCount)
     {
         Write-Error "You have specified [$IfaceCount] of Interfaces, but provided only [$($VMIPaddresses.Count)] IP addresses"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     if (($VMIPaddresses | Sort-Object -Unique).Count -ne $VMIPaddresses.Count)
     {
         Write-Error "Looks like you have duplicates in IP addresses"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     $VMIPaddress = $VMIPaddresses[0]
     Write-Verbose "[$VMIPaddress] will be used as main IP address."
@@ -1010,7 +1027,8 @@ Function New-MRVAzureVM
         if ((Test-MRVVMExist -name $VMname).Result)
         {
             Write-Error  "VM $VMname is already used!"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         else
         {
@@ -1030,7 +1048,8 @@ Function New-MRVAzureVM
                     $_.PrivateIpAddress -like ($IP)
                 }
                 Write-Error  "IP address is already used by IP Config $($IPCFGUsed.Name)!"
-                return $false
+                $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+                return $Result
             }
             else
             {
@@ -1060,7 +1079,8 @@ Function New-MRVAzureVM
         if (($VirtualNetworkobj -eq $null) -or ($Subnetobj -eq $null))
         {
             Write-Error  "Can't find the VNET and SubNET for the IP provided! MAke sure that the IP adress is correct and SubNET has been created!"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         If (($VirtualNetworkobj.count -gt 1) -or ($Subnetobj.Count -gt 1))
         {
@@ -1068,7 +1088,8 @@ Function New-MRVAzureVM
             Write-Verbose  "SubNetNames: [$SubNetNames]"
             Write-Error  "Multiple VNETs and / or SubNETs for the IP found! Can't understand where we going... Sorry... "
             Write-Error  "Multiple VNETs and / or SubNETs with the same CIDRs within the same subscription not supported."
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         If ($counter -eq 1)
         {
@@ -1082,7 +1103,8 @@ Function New-MRVAzureVM
             {
                 Write-Error "It looks like IP [$IP] belongs to VNET [$($VirtualNetworkobj.name)] while IP [$($VMIPaddresses[0])] belongs to VNET [$VNetName]!"
                 Write-Error "ALL IP addresses must be from the same VNET"
-                return $false
+                $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+                return $Result
             }
         }
         $SubNetNames += $Subnetobj.Name
@@ -1093,7 +1115,8 @@ Function New-MRVAzureVM
     If (!$DiagStorageAccount.Result)
     {
         Write-Error "Failed to retrieve Diagnostic Storage account."
-        $DiagStorageAccount.Error
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     $DiagStorageResourceGroup = $DiagStorageAccount.StorageResourceGroup
     $DiagStorageAccountName = $DiagStorageAccount.StorageAccountName.Replace(' ', '')
@@ -1113,7 +1136,8 @@ Function New-MRVAzureVM
         If ($publisher -eq $null)
         {
             Write-Error  "Sorry, can't find the Image Pubslisher [$imagePublisher]"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         else
         {
@@ -1123,7 +1147,8 @@ Function New-MRVAzureVM
             If ($offer -eq $null)
             {
                 Write-Error  "Sorry, can't find the Image Offer [$imageOffer]"
-                return $false
+                $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+                return $Result
             }
             else
             {
@@ -1134,7 +1159,8 @@ Function New-MRVAzureVM
                 If ($offer -eq $null)
                 {
                     Write-Error  "Sorry, can't find the Image SKU [$ImageSKU]"
-                    return $false
+                    $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+                    return $Result
                 }
                 else
                 {
@@ -1172,7 +1198,8 @@ Function New-MRVAzureVM
     If (($DatadiskSizeGB -lt 1) -or ($DatadiskSizeGB -gt $MaxDiskSize))
     {
         Write-Error "Datadisk can't be size [$DatadiskSizeGB]. It must be from 1 to $MaxDiskSize GB"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     Write-Verbose  'Populating the StorageAccountName to use...'
     $CutIndex = 2 + $ResourceGroupName.IndexOf('-') + ($ResourceGroupName.Substring($ResourceGroupName.IndexOf('-') + 1)).IndexOf('-')
@@ -1224,7 +1251,7 @@ Function New-MRVAzureVM
     if ( -not (Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue))
     {
         Write-Verbose  "Resource Group ($ResourceGroupName) was not found! Trying to create it..."
-        New-AzureRmResourceGroup -Location $location -Name $ResourceGroupName
+        $ResourceGroup = New-AzureRmResourceGroup -Location $location -Name $ResourceGroupName
         Start-MRVWait -AprxDur 5 -Wait_Activity "Waiting for Resource Group to propagate"
     }
     else
@@ -1252,7 +1279,8 @@ Function New-MRVAzureVM
         If ($storageContext -eq $null)
         {
             Write-Error "Can't create a secure context for storage account [$JsonStorageAccountName]"
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         else
         {
@@ -1302,7 +1330,8 @@ Function New-MRVAzureVM
     catch
     {
         Write-Error  "Can't load the main template! Please check the path [$InputTemplatePath]"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     Write-Verbose  'Main Template has been loaded sucessfully!'
     $InputParameters = $null
@@ -1316,7 +1345,8 @@ Function New-MRVAzureVM
     catch
     {
         Write-Error  "Can't load the main Parameters template! Please check the path [$InputParametersPath]"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     $InputPostTasksPath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $CustomScriptPath + $CustomScript
     $InputPostTasks = $null
@@ -1345,7 +1375,8 @@ Function New-MRVAzureVM
         catch
         {
             Write-Error  "Copying Regional Settings REG from file [$EnGbDefaultTemplatePath]  failed..."
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         Write-Verbose  "Regional Settings REG from file [$EnGbDefaultTemplatePath] has been Copied sucessfully!"
         $EnGbWelcomeTemplatePath = $($PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $RegsPath + $EnGbWelcomeFile)
@@ -1357,7 +1388,8 @@ Function New-MRVAzureVM
         catch
         {
             Write-Error  "Copying Regional Settings REG from file [$EnGbWelcomeTemplatePath]  failed..."
-            return $false
+            $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+            return $Result
         }
         Write-Verbose  "Regional Settings REG from file [$EnGbWelcomeFile] has been Copied sucessfully!"
     }
@@ -1560,7 +1592,8 @@ Function New-MRVAzureVM
     catch
     {
         Write-Error  "Can't save or convert the main template to a file $($DeploymentTempPath +$OutFileName) !"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     Write-Verbose "Processing Parameters for VM Deployment"
     $InputParameters.parameters | Add-Member -MemberType NoteProperty -Name VMname -Value @{Value = $VMname}
@@ -1607,7 +1640,8 @@ Function New-MRVAzureVM
     catch
     {
         Write-Error  "Can't save or convert the main template to a file $($DeploymentTempPath +$JSONParametersOutFileName) !"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     $json_content = $null
 
@@ -1619,7 +1653,8 @@ Function New-MRVAzureVM
     catch
     {
         Write-Error  "Can't save or convert the main template to a file $($DeploymentTempPath +$CustomScript) !"
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     if (!$StandaloneVM)
     {
@@ -1650,14 +1685,15 @@ Function New-MRVAzureVM
         }
         else
         {
-            az storage blob upload --container-name $containername --account-name $JsonStorageAccountName  --account-key "$JsonStorageAccountKey" --file $($file.FullName) --name $($file.Name) --output json | ConvertFrom-Json
+            $AzCopyResult = az storage blob upload --container-name $containername --account-name $JsonStorageAccountName  --account-key "$JsonStorageAccountKey" --file $($file.FullName) --name $($file.Name) --output json | ConvertFrom-Json
         }
     }
     If ( $Simulate)
     {
         Write-Verbose  'Simulate has been used!'
         Write-Verbose  'Skipping Deployment'
-        return $false
+        $Result = @{Success = $false; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
     else
     {
@@ -1751,16 +1787,16 @@ Function New-MRVAzureVM
             {
                 Start-MRVWait -AprxDur 60 -Wait_Activity "Waiting before removal of joindomain extension...."
                 Write-verbose "Removing joindomain extention"
-                Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "joindomain" -Force
+                $extRemovalResult = Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "joindomain" -Force
                 Start-MRVWait -AprxDur 60 -Wait_Activity "Waiting before removal of extensions...."
                 Write-verbose "Removing AfterDeploymentTasks extention AfterDeploymentTasks"
-                Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "AfterDeploymentTasks" -Force
+                $extRemovalResult = Remove-AzureRmVMExtension -ResourceGroupName $ResourceGroupName -VMName $VMname -Name "AfterDeploymentTasks" -Force
             }
         }
         Write-Verbose "Updating VM Tags"
         $TagsTable.Add('Description', $Description)
         $TagsTable.Add('ChangeControl', $ChangeControl)
-        Update-MRVAzureTag -ResourceName $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName
+        $TagsResult = Update-MRVAzureTag -ResourceName $VMname -ResourceGroupName $ResourceGroupName -TagsTable $TagsTable -EnforceTag -SubscriptionName $SubscriptionName
         $time_end = get-date
         if ($DoNotCleanup)
         {
@@ -1774,6 +1810,7 @@ Function New-MRVAzureVM
 
         Write-Verbose  "Deployment finished at [$time_end]"
         Write-Verbose  "Deployment has been running for $(($time_end - $time_start).Hours) Hours and $(($time_end - $time_start).Minutes) Minutes"
-        return $true
+        $Result = @{Success = $true; VNetResourceGroup = $VNetResourceGroup; VNetName = $VNetName; Location = $location; SubNetNames = $SubNetNames; DiagStorageAccountName = $DiagStorageAccountName}
+        return $Result
     }
 }
