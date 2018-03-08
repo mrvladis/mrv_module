@@ -103,7 +103,10 @@ Function New-MRVAzureVNET
         [Parameter(ParameterSetName = 'Basic', Mandatory = $false)]
         [Parameter(ParameterSetName = 'HashTable', Mandatory = $false)]
         [string] $Prefix_RG = 'RG',
-
+        [Parameter(ParameterSetName = 'Basic', Mandatory = $false)]
+        [Parameter(ParameterSetName = 'HashTable', Mandatory = $false)]
+        [String]
+        $JsonTempFolder = 'C:\Temp\',
         #Storgage account name, where the JSON Templates stored during provisioning
         [Parameter(ParameterSetName = 'Basic', Mandatory = $false)]
         [Parameter(ParameterSetName = 'HashTable', Mandatory = $false)]
@@ -122,13 +125,13 @@ Function New-MRVAzureVNET
         $TokenExpiry = 45
     )
 
-    Write-Host "VM Provisioning  v.1.0.0.0"
+    Write-Output "VM Provisioning  v.1.0.0.0"
     ##################Loading Modules #################
     [datetime]$time_start = Get-Date
     $timestamp = Get-Date -Format 'yyyy-MM-dd-HH-mm'
-    Write-Host "Deployment started at [$time_start]"
-    Write-Host 'Loading Azure Modules'
-    Write-Host 'Please Wait...'
+    Write-Output "Deployment started at [$time_start]"
+    Write-Output 'Loading Azure Modules'
+    Write-Output 'Please Wait...'
     If (!(Import-MRVModule  'AzureRM').Result)
     {
         Write-Verbose "Can't load AzureRM module. Let's check if AzureRM.NetCore can be loaded"
@@ -140,13 +143,13 @@ Function New-MRVAzureVNET
     }
     Write-Verbose "Azure Modules have been loaded sucessfully."
     ##################Loading Modules #################
-    Write-Host "Determine OS we are running script from..."
+    Write-Output "Determine OS we are running script from..."
     If ($($ENV:OS) -eq $null)
     {
-        Write-Host "OS has been identified as NONE-Windows"
-        Write-Host "   #### Warning  ####      #### Warning  ####      #### Warning  ####   " -ForegroundColor Yellow
-        Write-Host "Some functionality and checks, like Active Directory will be unavailable" -ForegroundColor Yellow
-        Write-Host "   #### Warning  ####      #### Warning  ####      #### Warning  ####   " -ForegroundColor Yellow
+        Write-Output "OS has been identified as NONE-Windows"
+        Write-Output "   #### Warning  ####      #### Warning  ####      #### Warning  ####   " -ForegroundColor Yellow
+        Write-Output "Some functionality and checks, like Active Directory will be unavailable" -ForegroundColor Yellow
+        Write-Output "   #### Warning  ####      #### Warning  ####      #### Warning  ####   " -ForegroundColor Yellow
         $ScriptRuntimeWin = $false
         $JsonTempFolder = '/tmp/'
         $PathDelimiter = '/'
@@ -158,16 +161,16 @@ Function New-MRVAzureVNET
     }
     else
     {
-        Write-Host "OS has been identified as Windows"
+        Write-Output "OS has been identified as Windows"
         $ScriptRuntimeWin = $true
         $PathDelimiter = '\'
     }
     if (! (Test-Path $JsonTempFolder))
     {
-        Write-Host "Folder to store temporary Deployment templates [$JsonTempFolder] does not exist! Let's try to create" -ForegroundColor Yellow
+        Write-Output "Folder to store temporary Deployment templates [$JsonTempFolder] does not exist! Let's try to create" -ForegroundColor Yellow
         if (New-Item $JsonTempFolder -ItemType Directory)
         {
-            Write-Host "Folder to store temporary Deployment templates [$JsonTempFolder] has been created sucessfully" -ForegroundColor Green
+            Write-Output "Folder to store temporary Deployment templates [$JsonTempFolder] has been created sucessfully" -ForegroundColor Green
         }
         else
         {
@@ -176,7 +179,7 @@ Function New-MRVAzureVNET
         }
     }
 
-    Write-Host  "Provisional operation has been started with timestamp $timestamp" -BackgroundColor DarkCyan
+    Write-Output  "Provisional operation has been started with timestamp $timestamp" -BackgroundColor DarkCyan
     $Subscription = Select-MRVSubscription -SubscriptionName $SubscriptionName -ErrorAction SilentlyContinue
     If (!$Subscription.Result)
     {
@@ -196,7 +199,7 @@ Function New-MRVAzureVNET
     $JSONParametersFile = 'Azure_VNET_Parameters.json'
     $VNETName = $VNETName.ToUpper()
     $ResourceGroupName = $ResourceGroupName.ToUpper()
-    Write-Host "Input validation has not yet being defined! Deployment can fail due to incorrect input." -ForegroundColor Yellow
+    Write-Output "Input validation has not yet being defined! Deployment can fail due to incorrect input." -ForegroundColor Yellow
     #Check to validate VNET existence to be added here.
     $LocationCode = (Get-MRVLocationCode $location).LocationCode
     If ($SubnetNames.count -ne $SubnetCIDRs.Count)
@@ -206,13 +209,13 @@ Function New-MRVAzureVNET
     }
     if ( -not (Get-AzureRmResourceGroup -Name $ResourceGroupName -ErrorAction SilentlyContinue))
     {
-        Write-Host  "Resource Group ($ResourceGroupName) was not found! Trying to create it..."
+        Write-Output  "Resource Group ($ResourceGroupName) was not found! Trying to create it..."
         New-AzureRmResourceGroup -Location $location -Name $ResourceGroupName
         Start-MRVWait -AprxDur 5 -Wait_Activity "Waiting for Resource Group to propagate"
     }
     else
     {
-        Write-Host  "Resource Group ($ResourceGroupName) has been found!"
+        Write-Output  "Resource Group ($ResourceGroupName) has been found!"
     }
     $DeploymentName = $timestamp + '-' + $ResourceGroupName + '-Dep-' + $VNETName
     Write-Verbose  "Getting storage context for account [$JsonStorageAccountName] with provided key....."
@@ -233,7 +236,7 @@ Function New-MRVAzureVNET
         }
         else
         {
-            Write-Host "Secure context for storage account [$JsonStorageAccountName] has been created sucessfully." -ForegroundColor Green
+            Write-Output "Secure context for storage account [$JsonStorageAccountName] has been created sucessfully." -ForegroundColor Green
         }
     }
     Write-Verbose  "Creating container $containername"
@@ -259,20 +262,20 @@ Function New-MRVAzureVNET
             $token = '?' + $token
         }
     }
-    Write-Host  'Populating URLS for the Base Template' -ForegroundColor DarkGreen
+    Write-Output  'Populating URLS for the Base Template' -ForegroundColor DarkGreen
     $JsonTemplatesUrl = $JSONUrlBase + $containername + '/'
     $OutFileName = $JSONBaseTemplateFile.Substring(0, $JSONBaseTemplateFile.IndexOf('.')) + $containername + '.json'
     $JSONParametersOutFileName = $JSONParametersFile.Substring(0, $JSONParametersFile.IndexOf('.')) + $OutFileName
     $JsonUrlMain = $JsonTemplatesUrl + $OutFileName + $token
     $JSONParametersUrl = $JsonTemplatesUrl + $JSONParametersOutFileName + $token
 
-    Write-Host  "Main Temlate URL will be $JsonUrlMain Reading Main Template to be deployed"
-    Write-Host  'Preparing main template...' -BackgroundColor DarkCyan
+    Write-Output  "Main Temlate URL will be $JsonUrlMain Reading Main Template to be deployed"
+    Write-Output  'Preparing main template...' -BackgroundColor DarkCyan
 
     $InputTemplate = $null
     $InputTemplatePath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONBaseTemplateFile
     Write-Verbose "JSON Main Url is [$JsonUrlMain]"
-    Write-Host  "Loading Main Template from file [$InputTemplatePath]"
+    Write-Output  "Loading Main Template from file [$InputTemplatePath]"
     try
     {
         $InputTemplate = [system.io.file]::ReadAllText($InputTemplatePath) -join "`n" | ConvertFrom-Json
@@ -282,11 +285,11 @@ Function New-MRVAzureVNET
         Write-Error  "Can't load the main template! Please check the path [$InputTemplate]"
         return $false
     }
-    Write-Host  'Main Template has been loaded successfully!' -ForegroundColor DarkGreen
+    Write-Output  'Main Template has been loaded successfully!' -ForegroundColor DarkGreen
     $InputParameters = $null
     $InputParametersPath = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf($PathDelimiter)) + $JsonSourceTemlates + $JSONParametersFile
     Write-Verbose "JSON Parameters Main Url is [$JSONParametersUrl]"
-    Write-Host  "Loading Main Parameters Template from file [$InputParametersPath]"
+    Write-Output  "Loading Main Parameters Template from file [$InputParametersPath]"
     try
     {
         $InputParameters = [system.io.file]::ReadAllText($InputParametersPath) -join "`n" | ConvertFrom-Json
@@ -347,7 +350,7 @@ Function New-MRVAzureVNET
         Write-Error  "Can't save or convert the main template to a file $($DeploymentTempPath +$JSONParametersOutFileName) !"
         return $false
     }
-    Write-Host  'Going to upload the Json templated to BLOB storage' -ForegroundColor DarkGreen
+    Write-Output  'Going to upload the Json templated to BLOB storage' -ForegroundColor DarkGreen
     Write-Verbose  'Uploading files.....'
     $files = Get-ChildItem -Recurse -Path $DeploymentTempPath
     foreach ($file in $files)
@@ -361,7 +364,7 @@ Function New-MRVAzureVNET
             az storage blob upload --container-name $containername --account-name $JsonStorageAccountName  --account-key $JsonStorageAccountKey --file $($file.FullName) --name $($file.Name) --output json | ConvertFrom-Json
         }
     }
-    Write-Host  'Provisioning NET.....' -ForegroundColor DarkBlue -BackgroundColor White
+    Write-Output  'Provisioning NET.....' -ForegroundColor DarkBlue -BackgroundColor White
     $DeploymentSatus = New-AzureRmResourceGroupDeployment -ResourceGroupName $ResourceGroupName -Verbose -Name $DeploymentName -TemplateUri $JsonUrlMain -TemplateParameterUri $JSONParametersUrl
 
 

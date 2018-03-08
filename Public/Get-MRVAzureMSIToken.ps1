@@ -33,9 +33,21 @@ Function Get-MRVAzureMSIToken
         $MSISecret,
         [Parameter(Mandatory = $false)]
         [String]
-        $MSIEndpoint
+        $MSIEndpoint,
+        [Parameter(Mandatory = $false)]
+        [switch]
+        $VMMSI
     )
     $result = @{Result = $false; Token = $null; Reason = 'Failed to get token'}
+    If ($VMMSI)
+    {
+        Write-Output "Runining in Context of the VM"
+        If (($MSIEndpoint -eq $null) -or ($MSIEndpoint -eq ""))
+        {
+            Write-Output "No MSI endpoint provided. Assuming default one for the VM"
+            $MSIEndpoint = 'http://localhost:50342/oauth2/token'
+        }
+    }
     If (($MSIEndpoint -eq $null) -or ($MSIEndpoint -eq ""))
     {
         Write-Output "No MSI Endpont provided, checking in Environment Variables"
@@ -57,9 +69,19 @@ Function Get-MRVAzureMSIToken
         }
     }
     Write-Output "Endpoint: [$MSIEndpoint]"
-    $tokenAuthURI = $MSIEndpoint + "?resource=$resourceURI&api-version=$apiVersion"
-    $tokenResponse = Invoke-RestMethod -Method Get -Headers @{"Secret" = "$env:MSI_SECRET"} -Uri $tokenAuthURI
-    $accessToken = $tokenResponse.access_token
+    If ($VMMSI)
+    {
+        $response = Invoke-WebRequest -Uri $MSIEndpoint -Method GET -Body @{resource = $resourceURI} -Headers @{Metadata = "true"}
+        $content = $response.Content | ConvertFrom-Json
+        $accessToken = $content.access_token
+    }
+    else
+    {
+        $tokenAuthURI = $MSIEndpoint + "?resource=$resourceURI&api-version=$apiVersion"
+        $tokenResponse = Invoke-RestMethod -Method Get -Headers @{"Secret" = "$env:MSI_SECRET"} -Uri $tokenAuthURI
+        $accessToken = $tokenResponse.access_token
+    }
+
 
     if (($accessToken -eq $null) -or ($accessToken -eq ""))
     {

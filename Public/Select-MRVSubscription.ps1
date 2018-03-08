@@ -68,7 +68,7 @@ Function Select-MRVSubscription
             'southeastasia',
             'centralus',
             'eastus',
-            'eastus2',
+            '  ',
             'westus',
             'northcentralus',
             'southcentralus',

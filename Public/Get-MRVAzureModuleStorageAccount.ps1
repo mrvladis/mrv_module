@@ -127,13 +127,21 @@ Function Get-MRVAzureModuleStorageAccount
             Write-Error "Can't find [$AccountType] Storage account with the name [$StorageAccountName]"
             Write-Error "You can either create it before script execution or do not specify this parameter. Script will find account or create a new one."
         }
+        $StorageResourceGroup = $StorageAccount.ResourceGroupName
+        $StorageAccountName = $StorageAccount.StorageAccountName
     }
-    Write-Output "StorageAccountName [$StorageAccountName]"
-    If ($StorageAccount.Count -gt 1)
+
+    If ($StorageAccount.Count -ge 1)
     {
         Write-Output "It has been found [$($StorageAccount.count)] storage accounts with [$AccountType] Tags"
-        $StorageAccount = $StorageAccount[0]
-        Write-Output "Selecting the first one with the name [$($StorageAccount.StorageAccountName)]"
+        If ($StorageAccount.Count -gt 1)
+        {
+            $StorageAccount = $StorageAccount[0]
+            Write-Output "Selecting the first one with the name [$($StorageAccount.StorageAccountName)]"
+        }
+        $StorageResourceGroup = $StorageAccount.ResourceGroupName
+        $StorageAccountName = $StorageAccount.StorageAccountName
+        Write-verbose "Storage account name [$StorageAccountName] in Resource Group  [$StorageResourceGroup] will be used"
     }
     elseif ($StorageAccount.Count -eq 0)
     {
@@ -166,9 +174,8 @@ Function Get-MRVAzureModuleStorageAccount
         Start-MRVWait -AprxDur 30 -Wait_Activity  "Waiting for ARM sync"
         Write-Output "Setting tags on  [$AccountType] Storage account with the name [$StorageAccountName]"
         Update-MRVAzureTag -ResourceName $StorageAccountName -ResourceGroupName $RGName -SubscriptionName $SubscriptionName -TagsTable $Tags -EnforceTag
+        $StorageResourceGroup = $RGName
     }
-    $StorageResourceGroup = $StorageAccount.ResourceGroupName
-    $StorageAccountName = $StorageAccount.StorageAccountName
     $StorageAccountKey = ((Get-AzureRmStorageAccountKey -Name $StorageAccount.StorageAccountName -ResourceGroupName $StorageAccount.ResourceGroupName).GetEnumerator() | Where-Object {$_.KeyName -like 'key1'}).value
     $result = @{Result = $Success; Error = $Error; StorageAccountName = $StorageAccountName; StorageResourceGroup = $StorageResourceGroup; StorageAccountKey = $StorageAccountKey}
     return $result
